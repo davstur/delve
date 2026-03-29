@@ -1,0 +1,386 @@
+<svg viewBox="0 0 1400 2450" xmlns="http://www.w3.org/2000/svg">
+  <!-- Title -->
+  <text x="700" y="30" font-size="24" font-weight="bold" text-anchor="middle">Complete Agentic Coding Workflow</text>
+  
+  <!-- Arrow definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+  
+  <!-- Draw all arrows FIRST (so they appear behind boxes) -->
+  <g id="all-arrows">
+    <!-- Phase -1 (setup) flow -->
+    <path d="M 300 185 L 400 185" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 185 L 800 185" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Setup to inception -->
+    <path d="M 900 215 L 900 260 L 200 260 L 200 310" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <text x="550" y="255" font-size="10" fill="#555" text-anchor="middle">ready for inception</text>
+    
+    <!-- Phase 0 flow -->
+    <path d="M 300 340 L 400 430" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 430 L 800 510" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Inception to ongoing development -->
+    <path d="M 900 550 L 900 585 L 200 585 L 200 640" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <text x="550" y="580" font-size="10" fill="#555" text-anchor="middle">start development</text>
+    
+    <!-- Phase 1 (milestone) flow -->
+    <path d="M 300 670 L 400 670" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 670 L 750 670 L 750 730 L 350 730 L 350 765 L 300 765" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 300 765 L 350 765 L 350 780 L 400 780" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 780 L 800 780" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Milestones to stories or issues -->
+    <path d="M 900 800 L 900 830 L 200 830 L 200 870" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <text x="550" y="825" font-size="10" fill="#555" text-anchor="middle">milestones guide work</text>
+    
+    <!-- Direct to issues path -->
+    <path d="M 200 700 L 200 1110" stroke="#999" stroke-width="2" marker-end="url(#arrowhead)" fill="none" stroke-dasharray="5,5"/>
+    <text x="210" y="900" font-size="10" fill="#777">or direct to issues</text>
+    
+    <!-- Phase 2 (story) flow -->
+    <path d="M 300 900 L 400 900" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 900 L 800 900" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 900 930 L 900 960 L 550 960 L 550 970" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Story to issues -->
+    <path d="M 550 1050 L 550 1070 L 200 1070 L 200 1110" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <text x="375" y="1065" font-size="10" fill="#555" text-anchor="middle">story defines tasks</text>
+    
+    <!-- Phase 3 (issues) flow -->
+    <path d="M 300 1140 L 400 1150" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 1150 L 750 1150 L 750 1200 L 200 1200 L 200 1210" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 300 1235 L 400 1260" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 1260 L 800 1320" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 1000 1320 L 1100 1310" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Phase 4 flow (review and prioritization) -->
+    <path d="M 300 1525 L 350 1525 L 350 1610 L 400 1610" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 1610 L 750 1610 L 750 1625 L 1100 1625" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Phase 4 to 5 flow -->
+    <path d="M 1200 1650 L 1200 1760 L 200 1760 L 200 1820" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Phase 5 flow -->
+    <path d="M 300 1845 L 400 1940" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 700 1940 L 800 1920" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 300 1845 L 1100 1845" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    
+    <!-- Phase 6 flow -->
+    <path d="M 900 1950 L 900 2050" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 800 2085 L 700 2085 L 700 2170" stroke="#FF6B6B" stroke-width="2" marker-end="url(#arrowhead)" fill="none" stroke-dasharray="5,5"/>
+    <path d="M 550 2140 L 550 2020 L 900 2020 L 900 1960" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 800 2085 L 750 2085 L 750 2245 L 300 2245" stroke="#4CAF50" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+    <path d="M 300 2245 L 1100 2245" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" fill="none"/>
+  </g>
+  
+  <!-- Now draw all content AFTER arrows (so boxes appear on top) -->
+  
+  <!-- Swimlane Headers -->
+  <g id="headers">
+    <!-- Human -->
+    <rect x="50" y="60" width="300" height="40" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="200" y="85" text-anchor="middle" font-size="16" font-weight="bold">Human</text>
+    
+    <!-- Claude Code -->
+    <rect x="350" y="60" width="400" height="40" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2"/>
+    <text x="550" y="85" text-anchor="middle" font-size="16" font-weight="bold">Claude Code</text>
+    
+    <!-- Docs/GitHub -->
+    <rect x="750" y="60" width="300" height="40" fill="#e8f5e9" stroke="#388e3c" stroke-width="2"/>
+    <text x="900" y="85" text-anchor="middle" font-size="16" font-weight="bold">Docs / GitHub</text>
+    
+    <!-- Project Board -->
+    <rect x="1050" y="60" width="300" height="40" fill="#fff3e0" stroke="#f57c00" stroke-width="2"/>
+    <text x="1200" y="85" text-anchor="middle" font-size="16" font-weight="bold">Project Board</text>
+  </g>
+  
+  <!-- Swimlane dividers -->
+  <line x1="350" y1="60" x2="350" y2="2450" stroke="#ccc" stroke-width="1"/>
+  <line x1="750" y1="60" x2="750" y2="2450" stroke="#ccc" stroke-width="1"/>
+  <line x1="1050" y1="60" x2="1050" y2="2450" stroke="#ccc" stroke-width="1"/>
+  
+  <!-- Phase -1: Setup (Prerequisites) -->
+  <g id="phase-1">
+    <rect x="45" y="115" width="1310" height="140" fill="#fff8dc" stroke="#d4a017" stroke-width="2" rx="5"/>
+    <text x="700" y="140" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase -1: Workflow Setup (First-time Prerequisites)</text>
+    
+    <!-- Install commands -->
+    <rect x="100" y="155" width="200" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="175" text-anchor="middle" font-size="12" font-weight="bold">Install Commands</text>
+    <text x="200" y="190" text-anchor="middle" font-size="11">Copy command files to</text>
+    <text x="200" y="205" text-anchor="middle" font-size="11">.claude/commands/project/</text>
+    
+    <!-- Run setup -->
+    <rect x="400" y="155" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="170" text-anchor="middle" font-size="12" font-weight="bold">/setup-workflow</text>
+    <text x="550" y="185" text-anchor="middle" font-size="10" font-family="monospace">(no arguments needed)</text>
+    <text x="550" y="200" text-anchor="middle" font-size="11">• Create directory structure</text>
+    <text x="550" y="215" text-anchor="middle" font-size="11">• Install workflow docs</text>
+    <text x="550" y="230" text-anchor="middle" font-size="9" fill="#444" font-style="italic">One-time only</text>
+    
+    <!-- Structure created -->
+    <rect x="800" y="155" width="200" height="60" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+    <text x="900" y="175" text-anchor="middle" font-size="12" font-weight="bold">Workflow Ready</text>
+    <text x="900" y="190" text-anchor="middle" font-size="11">• docs/ structure</text>
+    <text x="900" y="205" text-anchor="middle" font-size="11">• Ready for inception</text>
+  </g>
+  
+  <!-- Phase 0: Project Inception (One-time) -->
+  <g id="phase0">
+    <rect x="45" y="275" width="1310" height="285" fill="#f0f0f0" stroke="#999" stroke-width="1" rx="5" stroke-dasharray="5,5"/>
+    <text x="700" y="300" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase 0: Project Inception (One-time for new projects)</text>
+    
+    <!-- Business idea -->
+    <rect x="100" y="310" width="200" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="335" text-anchor="middle" font-size="12" font-weight="bold">Business Idea</text>
+    <text x="200" y="355" text-anchor="middle" font-size="11">Brain dump &amp; vision</text>
+    
+    <!-- Inception -->
+    <rect x="400" y="390" width="300" height="100" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="405" text-anchor="middle" font-size="12" font-weight="bold">/start-new-project</text>
+    <text x="550" y="420" text-anchor="middle" font-size="10" font-family="monospace">"SaaS for freelance invoices"</text>
+    <text x="550" y="435" text-anchor="middle" font-size="11">• Challenge assumptions</text>
+    <text x="550" y="450" text-anchor="middle" font-size="11">• Research market</text>
+    <text x="550" y="465" text-anchor="middle" font-size="11">• Define architecture</text>
+    <text x="550" y="480" text-anchor="middle" font-size="9" fill="#444" font-style="italic">~30-60 min process</text>
+    
+    <!-- Docs created -->
+    <rect x="800" y="470" width="200" height="80" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+    <text x="900" y="490" text-anchor="middle" font-size="12" font-weight="bold">Full Documentation</text>
+    <text x="900" y="505" text-anchor="middle" font-size="11">• Vision &amp; Roadmap</text>
+    <text x="900" y="520" text-anchor="middle" font-size="11">• Initial User Stories</text>
+    <text x="900" y="535" text-anchor="middle" font-size="11">• Tech Architecture</text>
+  </g>
+  
+  <!-- Ongoing Development Section -->
+  <text x="60" y="590" font-size="16" font-weight="bold" fill="#333">Ongoing Development Cycle</text>
+  
+  <!-- Phase 1: Milestone Planning (Optional) -->
+  <g id="phase1">
+    <text x="700" y="620" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase 1: Milestone Planning (Optional - for sprint organization)</text>
+    
+    <!-- Sprint planning -->
+    <rect x="100" y="640" width="200" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="665" text-anchor="middle" font-size="12" font-weight="bold">Sprint Planning</text>
+    <text x="200" y="685" text-anchor="middle" font-size="11">Define next phase</text>
+    
+    <!-- Suggest milestones -->
+    <rect x="400" y="640" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="655" text-anchor="middle" font-size="12" font-weight="bold">/project/milestones/suggest</text>
+    <text x="550" y="670" text-anchor="middle" font-size="10" font-family="monospace">"focus on deployment"</text>
+    <text x="550" y="685" text-anchor="middle" font-size="11">• Analyze current state</text>
+    <text x="550" y="700" text-anchor="middle" font-size="11">• Suggest 2-3 milestones</text>
+    <text x="550" y="715" text-anchor="middle" font-size="9" fill="#444" font-style="italic">Returns suggestions only</text>
+    
+    <!-- Review suggestions -->
+    <rect x="100" y="740" width="200" height="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="760" text-anchor="middle" font-size="12" font-weight="bold">Review Suggestions</text>
+    <text x="200" y="775" text-anchor="middle" font-size="11">Pick milestones</text>
+    
+    <!-- Create milestones -->
+    <rect x="400" y="740" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="755" text-anchor="middle" font-size="12" font-weight="bold">/project/milestones/create</text>
+    <text x="550" y="770" text-anchor="middle" font-size="10" font-family="monospace">"Hello Production" "Auth Core"</text>
+    <text x="550" y="785" text-anchor="middle" font-size="11">• Create GitHub milestones</text>
+    <text x="550" y="800" text-anchor="middle" font-size="11">• Add descriptions</text>
+    <text x="550" y="815" text-anchor="middle" font-size="9" fill="#444" font-style="italic">Can create multiple at once</text>
+    
+    <!-- Milestones created -->
+    <rect x="800" y="740" width="200" height="60" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+    <text x="900" y="765" text-anchor="middle" font-size="12" font-weight="bold">GitHub Milestones</text>
+    <text x="900" y="785" text-anchor="middle" font-size="11">Ready to populate</text>
+  </g>
+  
+  <!-- Phase 2: Story Management -->
+  <g id="phase2">
+    <text x="700" y="850" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase 2: Story Management (Optional - not all issues need stories)</text>
+    
+    <!-- Feature idea -->
+    <rect x="100" y="870" width="200" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="895" text-anchor="middle" font-size="12" font-weight="bold">Feature Idea</text>
+    <text x="200" y="915" text-anchor="middle" font-size="11">"Need PDF export"</text>
+    
+    <!-- Create story -->
+    <rect x="400" y="870" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="885" text-anchor="middle" font-size="12" font-weight="bold">/project/stories/create</text>
+    <text x="550" y="900" text-anchor="middle" font-size="10" font-family="monospace">"Users can export PDFs"</text>
+    <text x="550" y="915" text-anchor="middle" font-size="11">• Refine into user story</text>
+    <text x="550" y="930" text-anchor="middle" font-size="11">• Check for duplicates</text>
+    <text x="550" y="945" text-anchor="middle" font-size="9" fill="#444" font-style="italic">Creates: pdf-export.md</text>
+    
+    <!-- Story created -->
+    <rect x="800" y="870" width="200" height="60" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+    <text x="900" y="895" text-anchor="middle" font-size="12" font-weight="bold">User Story</text>
+    <text x="900" y="915" text-anchor="middle" font-size="11">/user-stories/backlog/</text>
+    
+    <!-- Activate story -->
+    <rect x="400" y="970" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="985" text-anchor="middle" font-size="12" font-weight="bold">/project/stories/activate</text>
+    <text x="550" y="1000" text-anchor="middle" font-size="10" font-family="monospace">pdf-export</text>
+    <text x="550" y="1015" text-anchor="middle" font-size="11">Move to active folder</text>
+    <text x="550" y="1030" text-anchor="middle" font-size="11">"Create issues now?"</text>
+    <text x="550" y="1045" text-anchor="middle" font-size="9" fill="#444" font-style="italic">→ /user-stories/active/</text>
+  </g>
+  
+  <!-- Phase 3: Issue Creation -->
+  <g id="phase3">
+    <text x="700" y="1090" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase 3: Issue Creation &amp; Refinement</text>
+    
+    <!-- Define tasks -->
+    <rect x="100" y="1110" width="200" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="1130" text-anchor="middle" font-size="12" font-weight="bold">Define Tasks</text>
+    <text x="200" y="1145" text-anchor="middle" font-size="11">From story, milestone</text>
+    <text x="200" y="1160" text-anchor="middle" font-size="11">or technical need</text>
+    
+    <!-- Suggest issues -->
+    <rect x="400" y="1110" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="1125" text-anchor="middle" font-size="12" font-weight="bold">/project/issues/suggest</text>
+    <text x="550" y="1140" text-anchor="middle" font-size="10" font-family="monospace">"For milestone Hello Production"</text>
+    <text x="550" y="1155" text-anchor="middle" font-size="11">• Analyze needs</text>
+    <text x="550" y="1170" text-anchor="middle" font-size="11">• Group must/should/nice</text>
+    <text x="550" y="1185" text-anchor="middle" font-size="9" fill="#444" font-style="italic">Returns suggestions only</text>
+    
+    <!-- Review suggestions -->
+    <rect x="100" y="1210" width="200" height="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="1230" text-anchor="middle" font-size="12" font-weight="bold">Review Suggestions</text>
+    <text x="200" y="1245" text-anchor="middle" font-size="11">Select issues to create</text>
+    
+    <!-- Create issues -->
+    <rect x="400" y="1210" width="300" height="100" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="1225" text-anchor="middle" font-size="12" font-weight="bold">/project/issues/create</text>
+    <text x="550" y="1240" text-anchor="middle" font-size="10" font-family="monospace">"Deploy pipeline" "Add monitoring"</text>
+    <text x="550" y="1255" text-anchor="middle" font-size="11">• Deep research</text>
+    <text x="550" y="1270" text-anchor="middle" font-size="11">• Create comprehensive issues</text>
+    <text x="550" y="1285" text-anchor="middle" font-size="11">• Link to milestone</text>
+    <text x="550" y="1300" text-anchor="middle" font-size="9" fill="#444" font-style="italic">--research deep|normal|light</text>
+    
+    <!-- GitHub issues -->
+    <rect x="800" y="1280" width="200" height="80" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+    <text x="900" y="1300" text-anchor="middle" font-size="12" font-weight="bold">GitHub Issues</text>
+    <text x="900" y="1315" text-anchor="middle" font-size="11">#345, #346, #347</text>
+    <text x="900" y="1330" text-anchor="middle" font-size="11">gh issue create</text>
+    <text x="900" y="1345" text-anchor="middle" font-size="10" fill="#555">With milestone linked</text>
+    
+    <!-- No Status -->
+    <rect x="1100" y="1280" width="200" height="60" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="5"/>
+    <text x="1200" y="1305" text-anchor="middle" font-size="12" font-weight="bold">No Status</text>
+    <text x="1200" y="1325" text-anchor="middle" font-size="11">Auto-added</text>
+    
+    <!-- Optional: Flesh-out draft issues -->
+    <rect x="400" y="1350" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5" stroke-dasharray="3,3"/>
+    <text x="550" y="1365" text-anchor="middle" font-size="12" font-weight="bold">/project/issues/flesh-out</text>
+    <text x="550" y="1380" text-anchor="middle" font-size="10" font-family="monospace">#345 (if draft)</text>
+    <text x="550" y="1395" text-anchor="middle" font-size="11">• Complete draft issues</text>
+    <text x="550" y="1410" text-anchor="middle" font-size="11">• Add full research</text>
+    <text x="550" y="1425" text-anchor="middle" font-size="9" fill="#444" font-style="italic">Optional: for draft issues</text>
+    
+    <!-- Optional: Update issues -->
+    <rect x="800" y="1350" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5" stroke-dasharray="3,3"/>
+    <text x="950" y="1365" text-anchor="middle" font-size="12" font-weight="bold">/project/issues/update</text>
+    <text x="950" y="1380" text-anchor="middle" font-size="10" font-family="monospace">#345 "Add CSV export"</text>
+    <text x="950" y="1395" text-anchor="middle" font-size="11">• Add new requirements</text>
+    <text x="950" y="1410" text-anchor="middle" font-size="11">• Update scope/approach</text>
+    <text x="950" y="1425" text-anchor="middle" font-size="9" fill="#444" font-style="italic">As needed during development</text>
+  </g>
+  
+  <!-- Phase 4: Review & Prioritization -->
+  <g id="phase4">
+    <text x="700" y="1480" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase 4: Issue Review &amp; Prioritization</text>
+    
+    <!-- Review -->
+    <rect x="100" y="1500" width="200" height="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="1520" text-anchor="middle" font-size="12" font-weight="bold">Review Issues</text>
+    <text x="200" y="1535" text-anchor="middle" font-size="11">Verify requirements</text>
+    
+    <!-- Prioritize -->
+    <rect x="400" y="1570" width="300" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="1585" text-anchor="middle" font-size="12" font-weight="bold">/project/issues/prioritize</text>
+    <text x="550" y="1600" text-anchor="middle" font-size="10" font-family="monospace">#345 #346 #347</text>
+    <text x="550" y="1615" text-anchor="middle" font-size="11">• Assign 🔴🟠🟡🟢 labels</text>
+    <text x="550" y="1630" text-anchor="middle" font-size="11">• Based on roadmap</text>
+    <text x="550" y="1645" text-anchor="middle" font-size="9" fill="#444" font-style="italic">Or: --review for bulk</text>
+    
+    <!-- Human Review lane -->
+    <rect x="1100" y="1500" width="200" height="50" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="5"/>
+    <text x="1200" y="1525" text-anchor="middle" font-size="12" font-weight="bold">Human Review</text>
+    <text x="1200" y="1540" text-anchor="middle" font-size="11">(Reviewing)</text>
+    
+    <!-- Todo -->
+    <rect x="1100" y="1600" width="200" height="50" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="5"/>
+    <text x="1200" y="1625" text-anchor="middle" font-size="12" font-weight="bold">Todo + Priority</text>
+    <text x="1200" y="1640" text-anchor="middle" font-size="11">(Ready to implement)</text>
+  </g>
+  
+  <!-- Phase 5: Implementation -->
+  <g id="phase5">
+    <text x="700" y="1700" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase 5: Implementation</text>
+    
+    <!-- Trigger -->
+    <rect x="100" y="1820" width="200" height="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="1840" text-anchor="middle" font-size="12" font-weight="bold">Start Work</text>
+    <text x="200" y="1855" text-anchor="middle" font-size="11">Select issue #345</text>
+    
+    <!-- Implement -->
+    <rect x="400" y="1890" width="300" height="100" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="1905" text-anchor="middle" font-size="12" font-weight="bold">/project/issues/implement</text>
+    <text x="550" y="1920" text-anchor="middle" font-size="10" font-family="monospace">#345 --context "use new auth"</text>
+    <text x="550" y="1935" text-anchor="middle" font-size="11">• Create branch</text>
+    <text x="550" y="1950" text-anchor="middle" font-size="11">• Move to In Progress</text>
+    <text x="550" y="1965" text-anchor="middle" font-size="11">• Code + tests + PR</text>
+    <text x="550" y="1980" text-anchor="middle" font-size="9" fill="#444" font-style="italic">Branch: feature/345-pdf-export</text>
+    
+    <!-- PR -->
+    <rect x="800" y="1890" width="200" height="60" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+    <text x="900" y="1915" text-anchor="middle" font-size="12" font-weight="bold">Pull Request</text>
+    <text x="900" y="1935" text-anchor="middle" font-size="11">Draft PR #456</text>
+    
+    <!-- In Progress -->
+    <rect x="1100" y="1820" width="200" height="50" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="5"/>
+    <text x="1200" y="1845" text-anchor="middle" font-size="12" font-weight="bold">In Progress</text>
+    <text x="1200" y="1860" text-anchor="middle" font-size="11">(Auto-moved)</text>
+  </g>
+  
+  <!-- Phase 6: Review & Merge -->
+  <g id="phase6">
+    <text x="700" y="2030" font-size="14" font-weight="bold" fill="#444" text-anchor="middle">Phase 6: Review &amp; Merge</text>
+    
+    <!-- CI/CD -->
+    <rect x="800" y="2050" width="200" height="70" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="5"/>
+    <text x="900" y="2070" text-anchor="middle" font-size="12" font-weight="bold">Automated Review</text>
+    <text x="900" y="2085" text-anchor="middle" font-size="11">• CI/CD tests</text>
+    <text x="900" y="2100" text-anchor="middle" font-size="11">• Linting</text>
+    <text x="900" y="2115" text-anchor="middle" font-size="11">• AI review</text>
+    
+    <!-- Fix if needed -->
+    <rect x="400" y="2140" width="300" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="5"/>
+    <text x="550" y="2160" text-anchor="middle" font-size="12" font-weight="bold">Fix Issues</text>
+    <text x="550" y="2175" text-anchor="middle" font-size="11">(if failures)</text>
+    <text x="550" y="2190" text-anchor="middle" font-size="11">Auto-fix &amp; push</text>
+    
+    <!-- Human approve -->
+    <rect x="100" y="2220" width="200" height="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+    <text x="200" y="2240" text-anchor="middle" font-size="12" font-weight="bold">Approve &amp; Merge</text>
+    <text x="200" y="2255" text-anchor="middle" font-size="11">Final review</text>
+    
+    <!-- Done -->
+    <rect x="1100" y="2220" width="200" height="50" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="5"/>
+    <text x="1200" y="2245" text-anchor="middle" font-size="12" font-weight="bold">Done</text>
+    <text x="1200" y="2260" text-anchor="middle" font-size="11">(Merged)</text>
+  </g>
+  
+  <!-- Command reference and notes -->
+  <g id="legend">
+    <rect x="50" y="2310" width="1300" height="130" fill="#f9f9f9" stroke="#ddd" stroke-width="1"/>
+    <text x="70" y="2335" font-size="12" font-weight="bold" fill="#333">Command Philosophy: Suggest → Review → Create</text>
+    <text x="70" y="2355" font-size="11" fill="#444">• Suggest commands: Fast analysis, no side effects (/project/milestones/suggest, /project/issues/suggest)</text>
+    <text x="70" y="2370" font-size="11" fill="#444">• Create commands: Deep research, actual creation (/project/milestones/create, /project/issues/create)</text>
+    <text x="70" y="2385" font-size="11" fill="#444">• Refinement commands: /project/issues/flesh-out (complete drafts), /project/issues/update (modify existing)</text>
+    <text x="70" y="2400" font-size="11" fill="#444">• Parameters: --milestone, --story, --research deep|normal|light, --prioritize, --context</text>
+    <text x="70" y="2415" font-size="11" fill="#444">• Management commands: /project/issues/prioritize (set priorities), /project/issues/implement (start work)</text>
+    <text x="70" y="2430" font-size="11" fill="#444">• All commands use slash notation: /project/category/command</text>
+  </g>
+</svg>

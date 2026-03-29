@@ -1,0 +1,15 @@
+{
+  "github": {
+    "project_number": 3,
+    "project_title": "Delve"
+  },
+  "update": {
+    "sources": [
+      {
+        "type": "local",
+        "path": "/Users/dstur/code/agentic-coding/src",
+        "enabled": true
+      }
+    ]
+  }
+}
