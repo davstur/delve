@@ -25,6 +25,19 @@ breakdown, so I can start exploring immediately.
 - Requires Claude API with web search tool configured
 - Requires CREATE_TOPIC prompt template
 
+## Technical Prerequisites
+
+- Issue: #8 - Scaffold FastAPI server with health check and Docker config
+- Issue: #9 - Design and implement Supabase schema for topics and nodes
+
+## Implementation
+
+- Issue: #10 - Implement CREATE_TOPIC API endpoint with Claude AI and web search
+- Issue: #11 - Build Create Topic bottom sheet UI with loading and error states
+- Issue: #12 - Build API client and topic state management
+- Issue: #13 - Wire Create Topic flow end-to-end
+- Created: 2026-03-30
+
 ## Notes
 
 - This is the "aha!" moment — speed and quality here determine first impression

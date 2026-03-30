@@ -34,6 +34,14 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# Server
+server/.env
+server/.env.cloudrun.yaml
+server/__pycache__/
+server/**/__pycache__/
+*.pyc
 
 # TypeScript
 *.tsbuildinfo

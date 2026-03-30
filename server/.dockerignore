@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+!.env.cloudrun.yaml.example
+__pycache__/
+*.pyc
+deploy.sh
+.ruff_cache/
