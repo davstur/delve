@@ -6,29 +6,29 @@ import { TopicCard } from '../../components/TopicCard/TopicCard';
 import { MOCK_TOPICS } from '../../mock/topics';
 import { TopicWithStats } from '../../types';
 
+const safeTime = (d: string) => {
+  const t = new Date(d).getTime();
+  return isNaN(t) ? 0 : t;
+};
+
 export default function HomeScreen() {
   const [topics] = useState<TopicWithStats[]>(
     [...MOCK_TOPICS].sort(
-      (a, b) =>
-        new Date(b.last_visited_at).getTime() -
-        new Date(a.last_visited_at).getTime()
+      (a, b) => safeTime(b.last_visited_at) - safeTime(a.last_visited_at)
     )
   );
   const [refreshing, setRefreshing] = useState(false);
-  const [showEmpty, setShowEmpty] = useState(false);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 500);
   }, []);
 
-  const handleTopicPress = (topicId: string) => {
+  const handleTopicPress = useCallback((topicId: string) => {
     router.push(`/topic/${topicId}`);
-  };
+  }, []);
 
-  const displayTopics = showEmpty ? [] : topics;
-
-  if (displayTopics.length === 0) {
+  if (topics.length === 0) {
     return (
       <View testID="home-screen" style={styles.container}>
         <StatusBar style="light" />
@@ -55,7 +55,7 @@ export default function HomeScreen() {
       <StatusBar style="light" />
       <FlatList
         testID="topic-list"
-        data={displayTopics}
+        data={topics}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
           <TopicCard

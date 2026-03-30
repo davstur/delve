@@ -12,6 +12,8 @@ export function TopicCard({ topic, onPress, isNew }: TopicCardProps) {
   return (
     <Pressable
       testID={`topic-card-${topic.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={`${topic.title}, ${topic.nodeCount} nodes`}
       style={({ pressed }) => [
         styles.card,
         isNew && styles.cardNew,
