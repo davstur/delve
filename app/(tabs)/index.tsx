@@ -1,25 +1,85 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { TopicCard } from '../../components/TopicCard/TopicCard';
+import { MOCK_TOPICS } from '../../mock/topics';
+import { TopicWithStats } from '../../types';
+
+const safeTime = (d: string) => {
+  const t = new Date(d).getTime();
+  return isNaN(t) ? 0 : t;
+};
 
 export default function HomeScreen() {
+  const [topics] = useState<TopicWithStats[]>(
+    [...MOCK_TOPICS].sort(
+      (a, b) => safeTime(b.last_visited_at) - safeTime(a.last_visited_at)
+    )
+  );
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 500);
+  }, []);
+
+  const handleTopicPress = useCallback((topicId: string) => {
+    router.push(`/topic/${topicId}`);
+  }, []);
+
+  if (topics.length === 0) {
+    return (
+      <View testID="home-screen" style={styles.container}>
+        <StatusBar style="light" />
+        <View style={styles.emptyState} testID="empty-state">
+          <Text style={styles.emptyEmoji}>🔭</Text>
+          <Text style={styles.emptyTitle}>What are you curious about?</Text>
+          <Text style={styles.emptySubtitle}>
+            Pick any topic and start exploring.
+          </Text>
+          <Pressable
+            testID="new-topic-button"
+            style={styles.newTopicButton}
+            onPress={() => console.log('New topic pressed')}
+          >
+            <Text style={styles.newTopicButtonText}>+ New Topic</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View testID="home-screen" style={styles.container}>
       <StatusBar style="light" />
-      <View style={styles.emptyState} testID="empty-state">
-        <Text style={styles.emptyEmoji}>🔭</Text>
-        <Text style={styles.emptyTitle}>What are you curious about?</Text>
-        <Text style={styles.emptySubtitle}>
-          Pick any topic and start exploring.
-        </Text>
-        <Pressable
-          testID="new-topic-button"
-          style={styles.newTopicButton}
-          onPress={() => router.push('/topic/sample')}
-        >
-          <Text style={styles.newTopicButtonText}>+ New Topic</Text>
-        </Pressable>
-      </View>
+      <FlatList
+        testID="topic-list"
+        data={topics}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item, index }) => (
+          <TopicCard
+            topic={item}
+            onPress={handleTopicPress}
+            isNew={index === 0}
+          />
+        )}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#8888A0"
+          />
+        }
+      />
+      <Pressable
+        testID="new-topic-button"
+        style={styles.fab}
+        onPress={() => console.log('New topic pressed')}
+      >
+        <Text style={styles.fabText}>+ New Topic</Text>
+      </Pressable>
     </View>
   );
 }
@@ -28,6 +88,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F14',
+  },
+  listContent: {
+    paddingTop: 8,
+    paddingBottom: 80,
   },
   emptyState: {
     flex: 1,
@@ -59,6 +123,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   newTopicButtonText: {
+    color: '#F0F0F5',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 28,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  fabText: {
     color: '#F0F0F5',
     fontSize: 17,
     fontWeight: '600',
