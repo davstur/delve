@@ -99,9 +99,14 @@ async def create_topic(request: CreateTopicRequest):
                 "sources": json.dumps([s.model_dump() for s in child.sources]),
             })
 
-        if children_data:
-            children_result = supabase.table("nodes").insert(children_data).execute()
-            child_node_ids = [n["id"] for n in children_result.data]
+        children_result = supabase.table("nodes").insert(children_data).execute()
+        child_node_ids = [n["id"] for n in children_result.data]
+
+        # Step 5: Populate version snapshot with actual node tree
+        all_nodes = [root_result.data[0]] + children_result.data
+        supabase.table("versions").update({
+            "snapshot": json.dumps(all_nodes),
+        }).eq("id", version_id).execute()
 
     except HTTPException:
         raise

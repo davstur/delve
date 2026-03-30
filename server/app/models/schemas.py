@@ -26,6 +26,7 @@ class CreateTopicAIResponse(BaseModel):
     @field_validator("children")
     @classmethod
     def validate_branch_count(cls, v: list[BranchModel]) -> list[BranchModel]:
+        # Relaxed from spec's 4-6 to 2-8 to avoid rejecting valid AI responses
         if len(v) < 2:
             raise ValueError("Must have at least 2 branches")
         if len(v) > 8:

@@ -52,6 +52,11 @@ export default function HomeScreen() {
     setSheetOpen(true);
   }, []);
 
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    setIsCreating(false);
+  }, []);
+
   const handleCreate = useCallback(
     async (title: string) => {
       setIsCreating(true);
@@ -96,10 +101,7 @@ export default function HomeScreen() {
           </View>
           <CreateTopicSheet
             isOpen={sheetOpen}
-            onClose={() => {
-              setSheetOpen(false);
-              setIsCreating(false);
-            }}
+            onClose={closeSheet}
             onSubmit={handleCreate}
             isLoading={isCreating}
             error={createError}

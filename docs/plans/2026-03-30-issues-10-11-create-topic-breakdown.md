@@ -7,22 +7,22 @@ GOLDEN RULE: If feature is live, remove planning details from this doc.
 
 **Issues**: #10 (API endpoint), #11 (Bottom sheet UI)
 **Started**: 2026-03-30
-**Last Updated**: 2026-03-30 by Claude (post-review)
-**Status**: Active
+**Last Updated**: 2026-03-30 by Claude (preflight)
+**Status**: Implementation complete — preflight passed
 
 ---
 
 ## 🎯 Current Focus
 
-**Active Phase**: Not started
-**Next Action**: Phase 1 — Backend endpoint implementation
+**Active Phase**: Complete
+**Next Action**: Create PR
 
 ## 📊 Overall Progress
 
 | Priority | Total | Completed | In Progress | Not Started |
 |----------|-------|-----------|-------------|-------------|
-| 🟢 MUST  | 4     | 0         | 0           | 4           |
-| 🟡 SHOULD| 2     | 0         | 0           | 2           |
+| 🟢 MUST  | 4     | 4         | 0           | 0           |
+| 🟡 SHOULD| 2     | 2         | 0           | 0           |
 
 ---
 
@@ -30,22 +30,22 @@ GOLDEN RULE: If feature is live, remove planning details from this doc.
 
 | # | User Story | Value to User | Priority | Status |
 |---|-----------|---------------|----------|--------|
-| 1 | User: type a subject and get AI breakdown | Core "aha moment" — instant learning | 🟢 MUST | ❌ None |
-| 2 | User: see loading state during generation | Confidence the app is working | 🟢 MUST | ❌ None |
-| 3 | User: see error and retry on failure | Recover from problems | 🟢 MUST | ❌ None |
-| 4 | User: new topic appears in Home list | Topic persists after creation | 🟢 MUST | ❌ None |
-| 5 | User: see quality AI content with sources | Trust the information | 🟡 SHOULD | ❌ None |
-| 6 | User: smooth sheet + keyboard interaction | Feels polished, not janky | 🟡 SHOULD | ❌ None |
+| 1 | User: type a subject and get AI breakdown | Core "aha moment" — instant learning | 🟢 MUST | ✅ Done |
+| 2 | User: see loading state during generation | Confidence the app is working | 🟢 MUST | ✅ Done |
+| 3 | User: see error and retry on failure | Recover from problems | 🟢 MUST | ✅ Done |
+| 4 | User: new topic appears in Home list | Topic persists after creation | 🟢 MUST | ✅ Done |
+| 5 | User: see quality AI content with sources | Trust the information | 🟡 SHOULD | ✅ Done |
+| 6 | User: smooth sheet + keyboard interaction | Feels polished, not janky | 🟡 SHOULD | ✅ Done |
 
 ## 📌 Technical Enablers
 
 | # | Technical Work | Enables | Priority | Status |
 |---|---------------|---------|----------|--------|
-| T1 | CREATE_TOPIC prompt template + Claude API call | #1, #5 | 🟢 MUST | ❌ None |
-| T2 | POST /api/topics endpoint with Pydantic validation | #1, #3 | 🟢 MUST | ❌ None |
-| T3 | Persist topic + nodes + version to Supabase | #1, #4 | 🟢 MUST | ❌ None |
-| T4 | CreateTopicSheet component | #1, #2, #3, #6 | 🟢 MUST | ❌ None |
-| T5 | Wire FAB + empty-state button → sheet → API → navigation | #1, #4 | 🟢 MUST | ❌ None |
+| T1 | CREATE_TOPIC prompt template + Claude API call (tool_use) | #1, #5 | 🟢 MUST | ✅ Done |
+| T2 | POST /api/topics endpoint with Pydantic validation | #1, #3 | 🟢 MUST | ✅ Done |
+| T3 | Persist topic + nodes + version (with snapshot) to Supabase | #1, #4 | 🟢 MUST | ✅ Done |
+| T4 | CreateTopicSheet component + Storybook stories | #1, #2, #3, #6 | 🟢 MUST | ✅ Done |
+| T5 | Wire FAB + empty-state button → sheet → API → navigation | #1, #4 | 🟢 MUST | ✅ Done |
 
 ---
 

@@ -63,6 +63,8 @@ export function CreateTopicSheet({
       snapPoints={['40%']}
       enablePanDownToClose={!isLoading}
       onClose={onClose}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
@@ -100,7 +102,6 @@ export function CreateTopicSheet({
               onSubmitEditing={handleSubmit}
               autoCapitalize="sentences"
               autoCorrect
-              editable={!isLoading}
               accessibilityLabel="Topic name"
               accessibilityHint="Enter a subject to explore"
             />
