@@ -1,90 +1,166 @@
 import { useState, useCallback } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl } from 'react-native';
-import { router } from 'expo-router';
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  RefreshControl,
+} from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TopicCard } from '../../components/TopicCard/TopicCard';
-import { MOCK_TOPICS } from '../../mock/topics';
+import { CreateTopicSheet } from '../../components/CreateTopicSheet';
+import { fetchTopics, createTopic } from '../../api/client';
 import { TopicWithStats } from '../../types';
 
-const safeTime = (d: string) => {
-  const t = new Date(d).getTime();
-  return isNaN(t) ? 0 : t;
-};
-
 export default function HomeScreen() {
-  const [topics] = useState<TopicWithStats[]>(
-    [...MOCK_TOPICS].sort(
-      (a, b) => safeTime(b.last_visited_at) - safeTime(a.last_visited_at)
-    )
-  );
+  const [topics, setTopics] = useState<TopicWithStats[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 500);
+  const loadTopics = useCallback(async () => {
+    try {
+      const data = await fetchTopics();
+      setTopics(data);
+    } catch {
+      // Silently fail on load — topics will be empty
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadTopics();
+    }, [loadTopics])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadTopics();
+    setRefreshing(false);
+  }, [loadTopics]);
 
   const handleTopicPress = useCallback((topicId: string) => {
     router.push(`/topic/${topicId}`);
   }, []);
 
-  if (topics.length === 0) {
+  const openSheet = useCallback(() => {
+    setCreateError(null);
+    setSheetOpen(true);
+  }, []);
+
+  const handleCreate = useCallback(
+    async (title: string) => {
+      setIsCreating(true);
+      setCreateError(null);
+      try {
+        const result = await createTopic(title);
+        setSheetOpen(false);
+        setIsCreating(false);
+        router.push(`/topic/${result.topic.id}`);
+      } catch (e: any) {
+        setIsCreating(false);
+        setCreateError(
+          e?.name === 'AbortError'
+            ? 'Request timed out. Try again or use a simpler topic.'
+            : e?.message || 'Something went wrong. Try again.'
+        );
+      }
+    },
+    []
+  );
+
+  if (topics.length === 0 && !refreshing) {
     return (
-      <View testID="home-screen" style={styles.container}>
-        <StatusBar style="light" />
-        <View style={styles.emptyState} testID="empty-state">
-          <Text style={styles.emptyEmoji}>🔭</Text>
-          <Text style={styles.emptyTitle}>What are you curious about?</Text>
-          <Text style={styles.emptySubtitle}>
-            Pick any topic and start exploring.
-          </Text>
-          <Pressable
-            testID="new-topic-button"
-            style={styles.newTopicButton}
-            onPress={() => console.log('New topic pressed')}
-          >
-            <Text style={styles.newTopicButtonText}>+ New Topic</Text>
-          </Pressable>
+      <GestureHandlerRootView style={styles.flex}>
+        <View testID="home-screen" style={styles.container}>
+          <StatusBar style="light" />
+          <View style={styles.emptyState} testID="empty-state">
+            <Text style={styles.emptyEmoji}>🔭</Text>
+            <Text style={styles.emptyTitle}>What are you curious about?</Text>
+            <Text style={styles.emptySubtitle}>
+              Pick any topic and start exploring.
+            </Text>
+            <Pressable
+              testID="new-topic-button-empty"
+              style={styles.newTopicButton}
+              onPress={openSheet}
+              accessibilityRole="button"
+              accessibilityLabel="Create new topic"
+            >
+              <Text style={styles.newTopicButtonText}>+ New Topic</Text>
+            </Pressable>
+          </View>
+          <CreateTopicSheet
+            isOpen={sheetOpen}
+            onClose={() => {
+              setSheetOpen(false);
+              setIsCreating(false);
+            }}
+            onSubmit={handleCreate}
+            isLoading={isCreating}
+            error={createError}
+          />
         </View>
-      </View>
+      </GestureHandlerRootView>
     );
   }
 
   return (
-    <View testID="home-screen" style={styles.container}>
-      <StatusBar style="light" />
-      <FlatList
-        testID="topic-list"
-        data={topics}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <TopicCard
-            topic={item}
-            onPress={handleTopicPress}
-            isNew={index === 0}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#8888A0"
-          />
-        }
-      />
-      <Pressable
-        testID="new-topic-button"
-        style={styles.fab}
-        onPress={() => console.log('New topic pressed')}
-      >
-        <Text style={styles.fabText}>+ New Topic</Text>
-      </Pressable>
-    </View>
+    <GestureHandlerRootView style={styles.flex}>
+      <View testID="home-screen" style={styles.container}>
+        <StatusBar style="light" />
+        <FlatList
+          testID="topic-list"
+          data={topics}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <TopicCard
+              topic={item}
+              onPress={handleTopicPress}
+              isNew={index === 0}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#8888A0"
+            />
+          }
+        />
+        <Pressable
+          testID="new-topic-fab"
+          style={styles.fab}
+          onPress={openSheet}
+          accessibilityRole="button"
+          accessibilityLabel="Create new topic"
+        >
+          <Text style={styles.fabText}>+ New Topic</Text>
+        </Pressable>
+        <CreateTopicSheet
+          isOpen={sheetOpen}
+          onClose={() => {
+            setSheetOpen(false);
+            setIsCreating(false);
+          }}
+          onSubmit={handleCreate}
+          isLoading={isCreating}
+          error={createError}
+        />
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#0F0F14',
