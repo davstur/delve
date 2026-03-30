@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 import anthropic
 
@@ -66,7 +67,7 @@ def get_anthropic() -> anthropic.Anthropic:
     if _client is None:
         _client = anthropic.Anthropic(
             api_key=settings.anthropic_api_key,
-            timeout=30.0,
+            timeout=120.0,
         )
     return _client
 
@@ -83,9 +84,9 @@ def generate_topic(user_input: str) -> dict:
 
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=4096,
+        max_tokens=16000,
         tools=[
-            {"type": "web_search_20250305"},
+            {"type": "web_search_20250305", "name": "web_search", "max_uses": 3},
             CREATE_TOPIC_TOOL,
         ],
         messages=[{"role": "user", "content": prompt}],
@@ -94,7 +95,8 @@ def generate_topic(user_input: str) -> dict:
     # Extract structured data from tool_use block
     for block in response.content:
         if block.type == "tool_use" and block.name == "create_topic_result":
-            return block.input
+            logger.info("tool_use keys: %s, stop_reason: %s", list(block.input.keys()), response.stop_reason)
+            return _strip_cite_tags(block.input)
 
     # tool_use not found — log block types for debugging
     block_types = [b.type for b in response.content]
@@ -114,3 +116,16 @@ def generate_topic(user_input: str) -> dict:
 
     logger.error("No structured response from Claude: %s", block_types)
     raise ValueError("AI did not return a structured response")
+
+
+_CITE_RE = re.compile(r'</?cite[^>]*>')
+
+
+def _strip_cite_tags(data: dict) -> dict:
+    """Remove <cite> tags that web search injects into text fields."""
+    if "summary" in data and isinstance(data["summary"], str):
+        data["summary"] = _CITE_RE.sub("", data["summary"])
+    for child in data.get("children", []):
+        if "summary" in child and isinstance(child["summary"], str):
+            child["summary"] = _CITE_RE.sub("", child["summary"])
+    return data

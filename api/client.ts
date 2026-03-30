@@ -4,7 +4,7 @@ const BASE_URL = __DEV__
   ? 'http://localhost:8080'
   : 'https://delve-api-PLACEHOLDER.run.app';
 
-const TIMEOUT_MS = 45_000;
+const TIMEOUT_MS = 120_000;
 
 interface TopicWithNodes {
   topic: TopicWithStats;
