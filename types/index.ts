@@ -26,6 +26,8 @@ export interface TopicNode {
   content: string | null;
   depth: number;
   sources: Source[] | null;
+  sort_order: number;
   created_at: string;
+  updated_at: string;
   version_id: string;
 }
