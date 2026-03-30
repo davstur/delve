@@ -16,6 +16,7 @@ interface CreateTopicSheetProps {
   onSubmit: (title: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
+  failCount: number;
 }
 
 export function CreateTopicSheet({
@@ -24,11 +25,11 @@ export function CreateTopicSheet({
   onSubmit,
   isLoading,
   error,
+  failCount,
 }: CreateTopicSheetProps) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const inputRef = useRef<TextInput>(null);
   const [title, setTitle] = useState('');
-  const [failCount, setFailCount] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -37,15 +38,8 @@ export function CreateTopicSheet({
     } else {
       bottomSheetRef.current?.close();
       setTitle('');
-      setFailCount(0);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (error) {
-      setFailCount((c) => c + 1);
-    }
-  }, [error]);
 
   const handleSubmit = useCallback(() => {
     const trimmed = title.trim();

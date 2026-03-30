@@ -27,6 +27,7 @@ export const Default: Story = {
     onSubmit: async () => {},
     isLoading: false,
     error: null,
+    failCount: 0,
   },
 };
 
@@ -37,6 +38,7 @@ export const Loading: Story = {
     onSubmit: async () => {},
     isLoading: true,
     error: null,
+    failCount: 0,
   },
 };
 
@@ -47,6 +49,7 @@ export const Error: Story = {
     onSubmit: async () => {},
     isLoading: false,
     error: 'Something went wrong. Try again.',
+    failCount: 1,
   },
 };
 
@@ -57,5 +60,6 @@ export const Closed: Story = {
     onSubmit: async () => {},
     isLoading: false,
     error: null,
+    failCount: 0,
   },
 };

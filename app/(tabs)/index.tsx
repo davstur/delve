@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,17 +18,23 @@ import { TopicWithStats } from '../../types';
 
 export default function HomeScreen() {
   const [topics, setTopics] = useState<TopicWithStats[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const createFailCount = useRef(0);
 
   const loadTopics = useCallback(async () => {
     try {
       const data = await fetchTopics();
       setTopics(data);
-    } catch {
-      // Silently fail on load — topics will be empty
+      setLoadError(null);
+    } catch (e: any) {
+      setLoadError('Could not load topics. Pull to refresh.');
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -49,6 +56,7 @@ export default function HomeScreen() {
 
   const openSheet = useCallback(() => {
     setCreateError(null);
+    createFailCount.current = 0;
     setSheetOpen(true);
   }, []);
 
@@ -65,8 +73,10 @@ export default function HomeScreen() {
         const result = await createTopic(title);
         setSheetOpen(false);
         setIsCreating(false);
+        createFailCount.current = 0;
         router.push(`/topic/${result.topic.id}`);
       } catch (e: any) {
+        createFailCount.current += 1;
         setIsCreating(false);
         setCreateError(
           e?.name === 'AbortError'
@@ -78,17 +88,44 @@ export default function HomeScreen() {
     []
   );
 
-  if (topics.length === 0 && !refreshing) {
+  // Loading state — initial fetch
+  if (isLoading) {
+    return (
+      <GestureHandlerRootView style={styles.flex}>
+        <View testID="home-screen" style={[styles.container, styles.centered]}>
+          <StatusBar style="light" />
+          <ActivityIndicator size="large" color="#4F46E5" />
+        </View>
+      </GestureHandlerRootView>
+    );
+  }
+
+  // Empty state — no topics (or load error with no cached topics)
+  if (topics.length === 0) {
     return (
       <GestureHandlerRootView style={styles.flex}>
         <View testID="home-screen" style={styles.container}>
           <StatusBar style="light" />
           <View style={styles.emptyState} testID="empty-state">
-            <Text style={styles.emptyEmoji}>🔭</Text>
-            <Text style={styles.emptyTitle}>What are you curious about?</Text>
-            <Text style={styles.emptySubtitle}>
-              Pick any topic and start exploring.
-            </Text>
+            {loadError ? (
+              <>
+                <Text style={styles.emptyEmoji}>😵</Text>
+                <Text style={styles.emptyTitle}>Could not load topics</Text>
+                <Text style={styles.emptySubtitle}>
+                  Check your connection and pull to refresh.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.emptyEmoji}>🔭</Text>
+                <Text style={styles.emptyTitle}>
+                  What are you curious about?
+                </Text>
+                <Text style={styles.emptySubtitle}>
+                  Pick any topic and start exploring.
+                </Text>
+              </>
+            )}
             <Pressable
               testID="new-topic-button-empty"
               style={styles.newTopicButton}
@@ -105,6 +142,7 @@ export default function HomeScreen() {
             onSubmit={handleCreate}
             isLoading={isCreating}
             error={createError}
+            failCount={createFailCount.current}
           />
         </View>
       </GestureHandlerRootView>
@@ -115,6 +153,11 @@ export default function HomeScreen() {
     <GestureHandlerRootView style={styles.flex}>
       <View testID="home-screen" style={styles.container}>
         <StatusBar style="light" />
+        {loadError && (
+          <View testID="load-error-banner" style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{loadError}</Text>
+          </View>
+        )}
         <FlatList
           testID="topic-list"
           data={topics}
@@ -146,13 +189,11 @@ export default function HomeScreen() {
         </Pressable>
         <CreateTopicSheet
           isOpen={sheetOpen}
-          onClose={() => {
-            setSheetOpen(false);
-            setIsCreating(false);
-          }}
+          onClose={closeSheet}
           onSubmit={handleCreate}
           isLoading={isCreating}
           error={createError}
+          failCount={createFailCount.current}
         />
       </View>
     </GestureHandlerRootView>
@@ -166,6 +207,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F14',
+  },
+  centered: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
     paddingTop: 8,
@@ -204,6 +249,16 @@ const styles = StyleSheet.create({
     color: '#F0F0F5',
     fontSize: 17,
     fontWeight: '600',
+  },
+  errorBanner: {
+    backgroundColor: '#7F1D1D',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  errorBannerText: {
+    color: '#FCA5A5',
+    fontSize: 14,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',

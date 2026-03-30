@@ -15,12 +15,12 @@ router = APIRouter(prefix="/api/topics", tags=["topics"])
 
 
 @router.get("")
-async def get_topics():
+def get_topics():
     return list_topics()
 
 
 @router.get("/{topic_id}")
-async def get_topic(topic_id: UUID):
+def get_topic(topic_id: UUID):
     result = get_topic_with_nodes(str(topic_id))
     if not result:
         raise HTTPException(status_code=404, detail="Topic not found")
@@ -28,7 +28,7 @@ async def get_topic(topic_id: UUID):
 
 
 @router.post("", status_code=201)
-async def create_topic(request: CreateTopicRequest):
+def create_topic(request: CreateTopicRequest):
     """Create a new topic using Claude AI with web search."""
     # Step 0: Call Claude AI
     try:
@@ -102,22 +102,27 @@ async def create_topic(request: CreateTopicRequest):
         children_result = supabase.table("nodes").insert(children_data).execute()
         child_node_ids = [n["id"] for n in children_result.data]
 
-        # Step 5: Populate version snapshot with actual node tree
-        all_nodes = [root_result.data[0]] + children_result.data
-        supabase.table("versions").update({
-            "snapshot": json.dumps(all_nodes),
-        }).eq("id", version_id).execute()
-
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Database insert failed: %s", e)
-        # Cleanup in reverse order (RESTRICT FKs prevent CASCADE)
         _cleanup_partial_insert(supabase, child_node_ids, root_node_id, version_id, topic_id)
         raise HTTPException(status_code=500, detail="Failed to save topic")
 
-    # Return same shape as GET /api/topics/{id}
-    return get_topic_with_nodes(topic_id)
+    # Step 5: Populate version snapshot (non-critical — topic is usable without it)
+    try:
+        all_nodes = [root_result.data[0]] + children_result.data
+        supabase.table("versions").update({
+            "snapshot": json.dumps(all_nodes),
+        }).eq("id", version_id).execute()
+    except Exception as e:
+        logger.warning("Failed to populate version snapshot: %s", e)
+
+    result = get_topic_with_nodes(topic_id)
+    if not result:
+        logger.error("Topic %s not found immediately after creation", topic_id)
+        raise HTTPException(status_code=500, detail="Topic created but could not be retrieved")
+    return result
 
 
 def _cleanup_partial_insert(
@@ -127,15 +132,24 @@ def _cleanup_partial_insert(
     version_id: str | None,
     topic_id: str | None,
 ):
-    """Delete partially inserted records in reverse FK order."""
-    try:
-        for nid in child_node_ids:
-            supabase.table("nodes").delete().eq("id", nid).execute()
-        if root_node_id:
+    """Delete partially inserted records in reverse FK order. Each step independent."""
+    if child_node_ids:
+        try:
+            supabase.table("nodes").delete().in_("id", child_node_ids).execute()
+        except Exception as e:
+            logger.error("Cleanup: failed to delete child nodes: %s", e)
+    if root_node_id:
+        try:
             supabase.table("nodes").delete().eq("id", root_node_id).execute()
-        if version_id:
+        except Exception as e:
+            logger.error("Cleanup: failed to delete root node: %s", e)
+    if version_id:
+        try:
             supabase.table("versions").delete().eq("id", version_id).execute()
-        if topic_id:
+        except Exception as e:
+            logger.error("Cleanup: failed to delete version: %s", e)
+    if topic_id:
+        try:
             supabase.table("topics").delete().eq("id", topic_id).execute()
-    except Exception as cleanup_err:
-        logger.error("Cleanup failed (orphaned data may exist): %s", cleanup_err)
+        except Exception as e:
+            logger.error("Cleanup: failed to delete topic: %s", e)

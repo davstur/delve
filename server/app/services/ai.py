@@ -96,15 +96,21 @@ def generate_topic(user_input: str) -> dict:
         if block.type == "tool_use" and block.name == "create_topic_result":
             return block.input
 
-    # Fallback: check for JSON in text blocks (in case Claude doesn't use the tool)
+    # tool_use not found — log block types for debugging
+    block_types = [b.type for b in response.content]
+    logger.warning("Claude did not use create_topic_result tool. Block types: %s", block_types)
+
+    # Fallback: try text blocks (log each attempt)
     for block in response.content:
         if block.type == "text":
             text = block.text.strip()
             if text.startswith("{"):
                 try:
-                    return json.loads(text)
-                except json.JSONDecodeError:
-                    continue
+                    result = json.loads(text)
+                    logger.warning("Used text-block JSON fallback instead of tool_use")
+                    return result
+                except json.JSONDecodeError as e:
+                    logger.warning("Failed to parse text block as JSON: %s", e)
 
-    logger.error("No structured response from Claude: %s", [b.type for b in response.content])
+    logger.error("No structured response from Claude: %s", block_types)
     raise ValueError("AI did not return a structured response")
