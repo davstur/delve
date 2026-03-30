@@ -11,6 +11,10 @@ export interface Topic {
   last_visited_at: string;
 }
 
+export interface TopicWithStats extends Topic {
+  nodeCount: number;
+}
+
 export interface TopicNode {
   id: string;
   topic_id: string;
