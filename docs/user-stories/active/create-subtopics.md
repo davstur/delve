@@ -31,3 +31,9 @@ explore adjacent areas within a topic.
 - The suggest → select → create flow keeps the user in control while
   reducing the blank-page problem
 - Max depth enforced: H1 can add H2, H2 can add H3, H3 can add H4, H4 cannot add children
+
+## Implementation
+
+- Issue: #24 - Implement SUGGEST_SUBTOPICS and CREATE_SUBTOPICS API endpoints
+- Issue: #25 - Wire Add Subtopics chip to suggest-then-create flow with inline UI
+- Created: 2026-03-31
