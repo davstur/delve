@@ -34,6 +34,29 @@ class CreateTopicAIResponse(BaseModel):
         return v
 
 
+class ExpandNodeAIResponse(BaseModel):
+    """Validates the JSON returned by Claude for EXPAND_NODE."""
+
+    summary: str
+    sources: list[SourceModel] = []
+
+
+class ExpandNodeRequest(BaseModel):
+    prompt: str | None = None
+
+    @field_validator("prompt")
+    @classmethod
+    def validate_prompt(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) == 0:
+            return None
+        if len(v) > 500:
+            raise ValueError("Focus prompt must be at most 500 characters")
+        return v
+
+
 class CreateTopicRequest(BaseModel):
     title: str
 

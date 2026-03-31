@@ -50,6 +50,26 @@ export async function createTopic(title: string): Promise<TopicWithNodes> {
   return response.json();
 }
 
+export async function expandNode(
+  topicId: string,
+  nodeId: string,
+  prompt?: string,
+): Promise<TopicNode> {
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/api/topics/${topicId}/nodes/${nodeId}/expand`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt || null }),
+    },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to expand node');
+  }
+  return response.json();
+}
+
 export async function fetchTopicWithNodes(topicId: string): Promise<TopicWithNodes> {
   const response = await fetchWithTimeout(`${BASE_URL}/api/topics/${topicId}`);
   if (!response.ok) {
