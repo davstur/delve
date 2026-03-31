@@ -1,6 +1,9 @@
+import logging
 from datetime import datetime, timezone
 
 from app.services.database import get_supabase
+
+logger = logging.getLogger(__name__)
 
 
 def list_topics() -> list[dict]:
@@ -47,11 +50,17 @@ def get_topic_with_nodes(topic_id: str) -> dict | None:
         "topic_id", topic_id
     ).order("sort_order").execute()
 
-    supabase.table("topics").update(
-        {"last_visited_at": datetime.now(timezone.utc).isoformat()}
-    ).eq("id", topic_id).execute()
+    try:
+        supabase.table("topics").update(
+            {"last_visited_at": datetime.now(timezone.utc).isoformat()}
+        ).eq("id", topic_id).execute()
+    except Exception as e:
+        logger.warning("Failed to update last_visited_at for topic %s: %s", topic_id, e)
+
+    topic = topic_result.data
+    topic["nodeCount"] = len(nodes_result.data)
 
     return {
-        "topic": topic_result.data,
+        "topic": topic,
         "nodes": nodes_result.data,
     }
