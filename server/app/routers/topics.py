@@ -133,6 +133,8 @@ def create_topic(request: CreateTopicRequest):
 @router.post("/{topic_id}/nodes/{node_id}/expand")
 def expand_topic_node(topic_id: UUID, node_id: UUID, request: ExpandNodeRequest):
     """Expand a node with richer AI-generated content."""
+    from datetime import datetime, timezone
+
     supabase = get_supabase()
     topic_id_str = str(topic_id)
     node_id_str = str(node_id)
@@ -157,10 +159,17 @@ def expand_topic_node(topic_id: UUID, node_id: UUID, request: ExpandNodeRequest)
 
     topic_title = topic_result.data["title"]
 
-    # Build ancestor chain (walk parent_id to root)
+    # Build ancestor chain with cycle detection
     ancestors = []
     current = node
+    visited = {node["id"]}
     while current.get("parent_id"):
+        if current["parent_id"] in visited:
+            logger.error("Cycle in node ancestry: %s", current["parent_id"])
+            break
+        if len(ancestors) >= 10:
+            break
+        visited.add(current["parent_id"])
         parent_result = supabase.table("nodes").select("id,label,parent_id").eq(
             "id", current["parent_id"]
         ).maybe_single().execute()
@@ -170,19 +179,7 @@ def expand_topic_node(topic_id: UUID, node_id: UUID, request: ExpandNodeRequest)
         current = parent_result.data
     ancestor_path = " > ".join([*ancestors, node["label"]])
 
-    # Create version snapshot before mutation
-    all_nodes_result = supabase.table("nodes").select("*").eq(
-        "topic_id", topic_id_str
-    ).execute()
-
-    version_result = supabase.table("versions").insert({
-        "topic_id": topic_id_str,
-        "snapshot": json.dumps(all_nodes_result.data),
-        "action": "expand",
-    }).execute()
-    version_id = version_result.data[0]["id"]
-
-    # Call Claude AI
+    # Call Claude AI FIRST (before creating version — avoid orphaned versions on failure)
     try:
         raw = expand_node(
             topic_title=topic_title,
@@ -203,22 +200,47 @@ def expand_topic_node(topic_id: UUID, node_id: UUID, request: ExpandNodeRequest)
         logger.error("Expand validation failed: %s\nRaw: %s", e, str(raw)[:500])
         raise HTTPException(status_code=502, detail="AI returned an invalid response")
 
+    # Create version snapshot (pre-mutation state) — only after AI succeeds
+    all_nodes_result = supabase.table("nodes").select("*").eq(
+        "topic_id", topic_id_str
+    ).execute()
+
+    version_result = supabase.table("versions").insert({
+        "topic_id": topic_id_str,
+        "snapshot": json.dumps(all_nodes_result.data),
+        "action": "expand",
+    }).execute()
+    version_id = version_result.data[0]["id"]
+
     # Update node
-    from datetime import datetime, timezone
+    try:
+        supabase.table("nodes").update({
+            "summary": ai_response.summary,
+            "sources": json.dumps([s.model_dump() for s in ai_response.sources]),
+            "version_id": version_id,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", node_id_str).execute()
+    except Exception as e:
+        logger.error("Failed to update node %s: %s", node_id_str, e)
+        try:
+            supabase.table("versions").delete().eq("id", version_id).execute()
+        except Exception as cleanup_err:
+            logger.error("Failed to clean up version %s: %s", version_id, cleanup_err)
+        raise HTTPException(status_code=500, detail="Failed to save expanded content")
 
-    supabase.table("nodes").update({
-        "summary": ai_response.summary,
-        "sources": json.dumps([s.model_dump() for s in ai_response.sources]),
-        "version_id": version_id,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }).eq("id", node_id_str).execute()
-
-    # Return the updated node
+    # Return updated node (fallback to constructed response if re-fetch fails)
     updated = supabase.table("nodes").select("*").eq(
         "id", node_id_str
     ).maybe_single().execute()
 
-    return updated.data if updated and updated.data else node
+    if updated and updated.data:
+        return updated.data
+
+    logger.warning("Failed to re-fetch node %s after expand, returning constructed response", node_id_str)
+    node["summary"] = ai_response.summary
+    node["sources"] = json.dumps([s.model_dump() for s in ai_response.sources])
+    node["version_id"] = version_id
+    return node
 
 
 def _cleanup_partial_insert(

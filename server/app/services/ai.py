@@ -194,6 +194,8 @@ def expand_node(
             if text.startswith("{"):
                 try:
                     result = json.loads(text)
+                    if "summary" in result and isinstance(result["summary"], str):
+                        result["summary"] = _CITE_RE.sub("", result["summary"])
                     logger.warning("Used text-block JSON fallback for expand_node")
                     return result
                 except json.JSONDecodeError as e:

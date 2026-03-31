@@ -75,12 +75,18 @@ export default function ExplorerScreen() {
 
   const handleExpand = useCallback(async (nodeId: string, prompt?: string) => {
     if (!id) return;
+    // This throws on API errors — caught by CollapsibleSection's try/catch
     const updatedNode = await expandNode(id, nodeId, prompt);
 
-    // Update the node in the tree in-place
+    // Tree update errors should not be shown as "expansion failed"
     setTree((prev) => {
       if (!prev) return prev;
-      return updateNodeInTree(prev, nodeId, updatedNode);
+      try {
+        return updateNodeInTree(prev, nodeId, updatedNode);
+      } catch (treeErr) {
+        console.error('Failed to update node in tree after successful expand:', treeErr);
+        return prev;
+      }
     });
   }, [id]);
 
