@@ -30,3 +30,9 @@ focus prompt, so I can go deeper on what interests me.
 - The ancestor chain (path from root) is sent to AI for context
 - This is where the depth of Delve shines — each expansion should feel
   rewarding, revealing genuinely new information
+
+## Implementation
+
+- Issue: #21 - Implement EXPAND_NODE API endpoint with version snapshots
+- Issue: #22 - Wire Expand action chip to API with inline loading and content update
+- Created: 2026-03-31
