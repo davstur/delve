@@ -16,7 +16,26 @@
       "Bash(poetry run:*)",
       "Bash(kill 87083)",
       "Bash(wait 87083)",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "mcp__XcodeBuildMCP__session_show_defaults",
+      "mcp__XcodeBuildMCP__discover_projs",
+      "mcp__XcodeBuildMCP__list_sims",
+      "mcp__XcodeBuildMCP__session_set_defaults",
+      "Bash(EXPO_PUBLIC_STORYBOOK=true npx expo prebuild --platform ios --clean)",
+      "Bash(kill 27299)",
+      "Bash(kill 48190)",
+      "Bash(xargs kill:*)",
+      "mcp__XcodeBuildMCP__build_run_sim",
+      "Bash(kill 29628)",
+      "Bash(lsof -ti:8081)",
+      "mcp__XcodeBuildMCP__screenshot",
+      "mcp__XcodeBuildMCP__stop_app_sim",
+      "mcp__XcodeBuildMCP__launch_app_sim",
+      "mcp__ios-simulator__ui_tap",
+      "mcp__XcodeBuildMCP__snapshot_ui",
+      "Bash(xcrun simctl:*)",
+      "Bash(osascript:*)",
+      "mcp__ios-simulator__ui_swipe"
     ]
   }
 }
