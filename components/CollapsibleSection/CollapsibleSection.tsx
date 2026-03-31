@@ -67,6 +67,15 @@ function CollapsibleSectionInner({
     Alert.alert('Coming soon', 'This feature is coming in a future update.');
   }, []);
 
+  // Sources may come as string (JSONB from Supabase) or array
+  const parsedSources: Source[] = React.useMemo(() => {
+    if (!sources) return [];
+    if (typeof sources === 'string') {
+      try { return JSON.parse(sources); } catch { return []; }
+    }
+    return sources;
+  }, [sources]);
+
   const indent = DEPTH_INDENT[depth as keyof typeof DEPTH_INDENT] ?? 0;
   const headingStyle = DEPTH_STYLES[depth as keyof typeof DEPTH_STYLES] ?? DEPTH_STYLES[4];
 
@@ -120,9 +129,9 @@ function CollapsibleSectionInner({
           <Text style={styles.summary}>{summary}</Text>
 
           {/* Source links */}
-          {sources && sources.length > 0 && (
+          {parsedSources.length > 0 && (
             <View testID={`section-sources-${nodeId}`} style={styles.sourceRow}>
-              {sources.map((source, i) => (
+              {parsedSources.map((source, i) => (
                 <Text key={i} style={styles.sourceText} numberOfLines={1}>
                   🔗 {source.title}
                 </Text>
