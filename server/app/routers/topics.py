@@ -5,12 +5,19 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 
 from app.models.schemas import (
+    CreateSubtopicsAIResponse,
+    CreateSubtopicsRequest,
     CreateTopicAIResponse,
     CreateTopicRequest,
     ExpandNodeAIResponse,
     ExpandNodeRequest,
 )
-from app.services.ai import expand_node, generate_topic
+from app.services.ai import (
+    create_subtopics,
+    expand_node,
+    generate_topic,
+    suggest_subtopics,
+)
 from app.services.database import get_supabase
 from app.services.topics import get_topic_with_nodes, list_topics
 
@@ -241,6 +248,200 @@ def expand_topic_node(topic_id: UUID, node_id: UUID, request: ExpandNodeRequest)
     node["sources"] = json.dumps([s.model_dump() for s in ai_response.sources])
     node["version_id"] = version_id
     return node
+
+
+@router.post("/{topic_id}/nodes/{node_id}/suggest-subtopics")
+def suggest_node_subtopics(topic_id: UUID, node_id: UUID):
+    """Suggest 3 subtopics for a node."""
+    supabase = get_supabase()
+    topic_id_str = str(topic_id)
+    node_id_str = str(node_id)
+
+    # Fetch node
+    node_result = supabase.table("nodes").select("*").eq(
+        "id", node_id_str
+    ).eq("topic_id", topic_id_str).maybe_single().execute()
+
+    if not node_result or not node_result.data:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    node = node_result.data
+
+    # Depth check
+    if node["depth"] >= 4:
+        raise HTTPException(status_code=422, detail="Cannot add subtopics to maximum-depth nodes")
+
+    # Fetch topic title
+    topic_result = supabase.table("topics").select("title").eq(
+        "id", topic_id_str
+    ).maybe_single().execute()
+
+    if not topic_result or not topic_result.data:
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    # Build ancestor path
+    ancestors = []
+    current = node
+    visited = {node["id"]}
+    while current.get("parent_id"):
+        if current["parent_id"] in visited or len(ancestors) >= 10:
+            break
+        visited.add(current["parent_id"])
+        parent_result = supabase.table("nodes").select("id,label,parent_id").eq(
+            "id", current["parent_id"]
+        ).maybe_single().execute()
+        if not parent_result or not parent_result.data:
+            break
+        ancestors.insert(0, parent_result.data["label"])
+        current = parent_result.data
+
+    ancestor_path = " > ".join([*ancestors, node["label"]])
+
+    # Fetch existing children labels
+    children_result = supabase.table("nodes").select("label").eq(
+        "parent_id", node_id_str
+    ).execute()
+    existing_children = [c["label"] for c in children_result.data]
+
+    # Call AI
+    try:
+        suggestions = suggest_subtopics(
+            topic_title=topic_result.data["title"],
+            ancestor_path=ancestor_path,
+            node_label=node["label"],
+            node_summary=node["summary"],
+            existing_children=existing_children,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        logger.error("Suggest subtopics failed: %s", e)
+        raise HTTPException(status_code=502, detail="Failed to generate suggestions")
+
+    return {"suggestions": suggestions}
+
+
+@router.post("/{topic_id}/nodes/{node_id}/subtopics", status_code=201)
+def create_node_subtopics(
+    topic_id: UUID, node_id: UUID, request: CreateSubtopicsRequest
+):
+    """Create subtopics as child nodes."""
+    from datetime import datetime, timezone
+
+    supabase = get_supabase()
+    topic_id_str = str(topic_id)
+    node_id_str = str(node_id)
+
+    # Fetch node
+    node_result = supabase.table("nodes").select("*").eq(
+        "id", node_id_str
+    ).eq("topic_id", topic_id_str).maybe_single().execute()
+
+    if not node_result or not node_result.data:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    node = node_result.data
+    child_depth = node["depth"] + 1
+
+    if child_depth > 4:
+        raise HTTPException(status_code=422, detail="Cannot add subtopics to maximum-depth nodes")
+
+    # Fetch topic title
+    topic_result = supabase.table("topics").select("title").eq(
+        "id", topic_id_str
+    ).maybe_single().execute()
+
+    if not topic_result or not topic_result.data:
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    # Build ancestor path
+    ancestors = []
+    current = node
+    visited = {node["id"]}
+    while current.get("parent_id"):
+        if current["parent_id"] in visited or len(ancestors) >= 10:
+            break
+        visited.add(current["parent_id"])
+        parent_result = supabase.table("nodes").select("id,label,parent_id").eq(
+            "id", current["parent_id"]
+        ).maybe_single().execute()
+        if not parent_result or not parent_result.data:
+            break
+        ancestors.insert(0, parent_result.data["label"])
+        current = parent_result.data
+
+    ancestor_path = " > ".join([*ancestors, node["label"]])
+
+    # Fetch existing children labels for deduplication context
+    existing_result = supabase.table("nodes").select("label,sort_order").eq(
+        "parent_id", node_id_str
+    ).execute()
+    existing_siblings = [c["label"] for c in existing_result.data]
+    max_sort = max((c["sort_order"] for c in existing_result.data), default=-1)
+
+    # Call AI FIRST (before version — no orphaned versions on failure)
+    try:
+        children_data = create_subtopics(
+            topic_title=topic_result.data["title"],
+            ancestor_path=ancestor_path,
+            node_label=node["label"],
+            node_summary=node["summary"],
+            labels=request.labels,
+            parent_color=node["color"],
+            existing_siblings=existing_siblings,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        logger.error("Create subtopics AI failed: %s", e)
+        raise HTTPException(status_code=502, detail="AI failed to generate subtopic content")
+
+    # Validate
+    try:
+        ai_response = CreateSubtopicsAIResponse(children=children_data)
+    except Exception as e:
+        logger.error("Subtopics validation failed: %s\nRaw: %s", e, str(children_data)[:500])
+        raise HTTPException(status_code=502, detail="AI returned invalid subtopic data")
+
+    # Create version snapshot (after AI success, before mutation)
+    all_nodes_result = supabase.table("nodes").select("*").eq(
+        "topic_id", topic_id_str
+    ).execute()
+
+    version_result = supabase.table("versions").insert({
+        "topic_id": topic_id_str,
+        "snapshot": json.dumps(all_nodes_result.data),
+        "action": "create_subtopics",
+    }).execute()
+    version_id = version_result.data[0]["id"]
+
+    # Insert child nodes
+    nodes_to_insert = []
+    for i, child in enumerate(ai_response.children):
+        nodes_to_insert.append({
+            "topic_id": topic_id_str,
+            "parent_id": node_id_str,
+            "version_id": version_id,
+            "label": child.label,
+            "emoji": child.emoji,
+            "color": node["color"],  # DEC-005: server assigns parent's branch color
+            "summary": child.summary,
+            "depth": child_depth,
+            "sort_order": max_sort + 1 + i,
+            "sources": json.dumps([s.model_dump() for s in child.sources]),
+        })
+
+    try:
+        insert_result = supabase.table("nodes").insert(nodes_to_insert).execute()
+    except Exception as e:
+        logger.error("Failed to insert subtopics: %s", e)
+        try:
+            supabase.table("versions").delete().eq("id", version_id).execute()
+        except Exception as cleanup_err:
+            logger.error("Failed to clean up version %s: %s", version_id, cleanup_err)
+        raise HTTPException(status_code=500, detail="Failed to save subtopics")
+
+    return {"nodes": insert_result.data}
 
 
 def _cleanup_partial_insert(

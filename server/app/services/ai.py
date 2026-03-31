@@ -7,6 +7,7 @@ import anthropic
 from app.config import settings
 from app.prompts.create_topic import CREATE_TOPIC_PROMPT
 from app.prompts.expand_node import EXPAND_NODE_PROMPT
+from app.prompts.subtopics import CREATE_SUBTOPICS_PROMPT, SUGGEST_SUBTOPICS_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -202,6 +203,171 @@ def expand_node(
                     logger.warning("Failed to parse expand text block: %s", e)
 
     raise ValueError("AI did not return a structured response for expand")
+
+
+SUGGEST_SUBTOPICS_TOOL = {
+    "name": "suggest_subtopics_result",
+    "description": "Return 3 subtopic suggestions",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "suggestions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "label": {"type": "string"},
+                        "emoji": {"type": "string"},
+                    },
+                    "required": ["label", "emoji"],
+                },
+            },
+        },
+        "required": ["suggestions"],
+    },
+}
+
+CREATE_SUBTOPICS_TOOL = {
+    "name": "create_subtopics_result",
+    "description": "Return created subtopic content",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "children": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "label": {"type": "string"},
+                        "emoji": {"type": "string"},
+                        "color": {"type": "string"},
+                        "summary": {"type": "string"},
+                        "sources": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {"type": "string"},
+                                    "url": {"type": "string"},
+                                },
+                                "required": ["title", "url"],
+                            },
+                        },
+                    },
+                    "required": ["label", "emoji", "color", "summary", "sources"],
+                },
+            },
+        },
+        "required": ["children"],
+    },
+}
+
+
+def suggest_subtopics(
+    topic_title: str,
+    ancestor_path: str,
+    node_label: str,
+    node_summary: str,
+    existing_children: list[str],
+) -> list[dict]:
+    """Suggest 3 subtopics. Returns list of {label, emoji}."""
+    client = get_anthropic()
+
+    existing_section = ""
+    if existing_children:
+        existing_section = "Existing children (avoid duplicating these):\n" + "\n".join(
+            f"- {c}" for c in existing_children
+        ) + "\n"
+
+    prompt = SUGGEST_SUBTOPICS_PROMPT.format(
+        topic_title=topic_title,
+        ancestor_path=ancestor_path,
+        node_label=node_label,
+        node_summary=node_summary,
+        existing_children_section=existing_section,
+    )
+
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=2000,
+        tools=[SUGGEST_SUBTOPICS_TOOL],
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    for block in response.content:
+        if block.type == "tool_use" and block.name == "suggest_subtopics_result":
+            return block.input.get("suggestions", [])
+
+    raise ValueError("AI did not return subtopic suggestions")
+
+
+def create_subtopics(
+    topic_title: str,
+    ancestor_path: str,
+    node_label: str,
+    node_summary: str,
+    labels: list[str],
+    parent_color: str,
+    existing_siblings: list[str],
+) -> list[dict]:
+    """Create full content for subtopics. Returns list of child dicts."""
+    client = get_anthropic()
+
+    siblings_section = ""
+    if existing_siblings:
+        siblings_section = "Existing siblings (make content distinct from these):\n" + "\n".join(
+            f"- {s}" for s in existing_siblings
+        ) + "\n"
+
+    labels_list = "\n".join(f"{i+1}. {label}" for i, label in enumerate(labels))
+
+    prompt = CREATE_SUBTOPICS_PROMPT.format(
+        topic_title=topic_title,
+        ancestor_path=ancestor_path,
+        node_label=node_label,
+        node_summary=node_summary,
+        existing_siblings_section=siblings_section,
+        labels_list=labels_list,
+        parent_color=parent_color,
+    )
+
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=16000,
+        tools=[
+            {"type": "web_search_20250305", "name": "web_search", "max_uses": 5},
+            CREATE_SUBTOPICS_TOOL,
+        ],
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    for block in response.content:
+        if block.type == "tool_use" and block.name == "create_subtopics_result":
+            data = block.input
+            for child in data.get("children", []):
+                if "summary" in child and isinstance(child["summary"], str):
+                    child["summary"] = _CITE_RE.sub("", child["summary"])
+            return data.get("children", [])
+
+    # Fallback
+    block_types = [b.type for b in response.content]
+    logger.warning("Claude did not use create_subtopics_result tool: %s", block_types)
+
+    for block in response.content:
+        if block.type == "text":
+            text = block.text.strip()
+            if text.startswith("{"):
+                try:
+                    result = json.loads(text)
+                    children = result.get("children", [])
+                    for child in children:
+                        if "summary" in child and isinstance(child["summary"], str):
+                            child["summary"] = _CITE_RE.sub("", child["summary"])
+                    return children
+                except json.JSONDecodeError as e:
+                    logger.warning("Failed to parse subtopics text block: %s", e)
+
+    raise ValueError("AI did not return subtopic content")
 
 
 _CITE_RE = re.compile(r'</?cite[^>]*>')

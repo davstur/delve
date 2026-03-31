@@ -70,6 +70,48 @@ export async function expandNode(
   return response.json();
 }
 
+export interface SubtopicSuggestion {
+  label: string;
+  emoji: string;
+}
+
+export async function suggestSubtopics(
+  topicId: string,
+  nodeId: string,
+): Promise<SubtopicSuggestion[]> {
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/api/topics/${topicId}/nodes/${nodeId}/suggest-subtopics`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to get suggestions');
+  }
+  const data = await response.json();
+  return data.suggestions;
+}
+
+export async function createSubtopics(
+  topicId: string,
+  nodeId: string,
+  labels: string[],
+): Promise<TopicNode[]> {
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/api/topics/${topicId}/nodes/${nodeId}/subtopics`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ labels }),
+    },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to create subtopics');
+  }
+  const data = await response.json();
+  return data.nodes;
+}
+
 export async function fetchTopicWithNodes(topicId: string): Promise<TopicWithNodes> {
   const response = await fetchWithTimeout(`${BASE_URL}/api/topics/${topicId}`);
   if (!response.ok) {
