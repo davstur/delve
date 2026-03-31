@@ -41,6 +41,13 @@
 | Generate quiz | All nodes in topic | 5-10 MCQ questions | No |
 | Suggest topics | All topic summaries | 5-8 suggestions with rationale | No |
 
+## Explorer Defaults
+
+- H1 root: always expanded, non-collapsible
+- H2 branches: expanded on load (shows big picture)
+- H3/H4 children: collapsed on load (drill-down on demand)
+- Collapsed headings show descendant count
+
 ## Constraints
 
 - Maximum 4 depth levels enforced by UI (H4 nodes cannot add children)

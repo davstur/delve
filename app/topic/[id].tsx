@@ -11,7 +11,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { fetchTopicWithNodes } from '../../api/client';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
 import { buildTree } from '../../utils/buildTree';
-import type { TreeNode, TopicNode } from '../../types';
+import type { TreeNode } from '../../types';
 
 export default function ExplorerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,6 +20,7 @@ export default function ExplorerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [is404, setIs404] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -57,7 +58,7 @@ export default function ExplorerScreen() {
 
     load();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, retryCount]);
 
   const toggleNode = useCallback((nodeId: string) => {
     setExpandedNodes((prev) => {
@@ -107,19 +108,7 @@ export default function ExplorerScreen() {
         <Pressable
           testID="explorer-retry-button"
           style={styles.retryButton}
-          onPress={() => {
-            setIsLoading(true);
-            setError(null);
-            fetchTopicWithNodes(id!)
-              .then((data) => {
-                setTree(buildTree(data.nodes));
-                setIsLoading(false);
-              })
-              .catch(() => {
-                setError('Could not load topic. Try again.');
-                setIsLoading(false);
-              });
-          }}
+          onPress={() => setRetryCount((c) => c + 1)}
           accessibilityRole="button"
         >
           <Text style={styles.retryButtonText}>Try again</Text>

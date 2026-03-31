@@ -119,6 +119,17 @@ function CollapsibleSectionInner({
         <View testID={`section-body-${nodeId}`} style={styles.body}>
           <Text style={styles.summary}>{summary}</Text>
 
+          {/* Source links */}
+          {sources && sources.length > 0 && (
+            <View testID={`section-sources-${nodeId}`} style={styles.sourceRow}>
+              {sources.map((source, i) => (
+                <Text key={i} style={styles.sourceText} numberOfLines={1}>
+                  🔗 {source.title}
+                </Text>
+              ))}
+            </View>
+          )}
+
           {/* Action chips */}
           <View testID={`section-chips-${nodeId}`} style={styles.chipRow}>
             <Pressable
@@ -195,6 +206,14 @@ const styles = StyleSheet.create({
     color: '#F0F0F5',
     fontSize: 15,
     lineHeight: 24,
+  },
+  sourceRow: {
+    marginTop: 8,
+    gap: 2,
+  },
+  sourceText: {
+    color: '#8888A0',
+    fontSize: 12,
   },
   chipRow: {
     flexDirection: 'row',

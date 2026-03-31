@@ -46,6 +46,9 @@ export async function createTopic(title: string): Promise<TopicWithNodes> {
 export async function fetchTopicWithNodes(topicId: string): Promise<TopicWithNodes> {
   const response = await fetchWithTimeout(`${BASE_URL}/api/topics/${topicId}`);
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Topic not found');
+    }
     throw new Error('Failed to fetch topic');
   }
   return response.json();

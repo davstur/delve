@@ -14,15 +14,15 @@ GOLDEN RULE: If feature is live, remove planning details from this doc.
 
 ## 🎯 Current Focus
 
-**Active Phase**: Not started
-**Next Action**: Phase 1 — CollapsibleSection + DepthIndicator components
+**Active Phase**: Complete — preflight running
+**Next Action**: Create PR
 
 ## 📊 Overall Progress
 
 | Priority | Total | Completed | In Progress | Not Started |
 |----------|-------|-----------|-------------|-------------|
-| 🟢 MUST  | 5     | 0         | 0           | 5           |
-| 🟡 SHOULD| 2     | 0         | 0           | 2           |
+| 🟢 MUST  | 5     | 5         | 0           | 0           |
+| 🟡 SHOULD| 2     | 2         | 0           | 0           |
 
 ---
 
