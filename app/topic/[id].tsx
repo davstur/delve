@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { fetchTopicWithNodes } from '../../api/client';
+import { fetchTopicWithNodes, NotFoundError } from '../../api/client';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
 import { buildTree } from '../../utils/buildTree';
 import type { TreeNode } from '../../types';
@@ -31,7 +31,8 @@ export default function ExplorerScreen() {
       setError(null);
       setIs404(false);
       try {
-        const data = await fetchTopicWithNodes(id!);
+        const topicId = id;
+        const data = await fetchTopicWithNodes(topicId);
         if (cancelled) return;
         const rootTree = buildTree(data.nodes);
         setTree(rootTree);
@@ -43,9 +44,9 @@ export default function ExplorerScreen() {
           expanded.add(child.id);
         }
         setExpandedNodes(expanded);
-      } catch (e: any) {
+      } catch (e) {
         if (cancelled) return;
-        if (e?.message?.includes('not found') || e?.message?.includes('404')) {
+        if (e instanceof NotFoundError) {
           setIs404(true);
           setError('Topic not found');
         } else {
@@ -117,8 +118,23 @@ export default function ExplorerScreen() {
     );
   }
 
-  // No tree
-  if (!tree) return null;
+  // No tree (unexpected state — loading done, no error, but no tree)
+  if (!tree) {
+    return (
+      <View testID="explorer-screen" style={[styles.container, styles.centered]}>
+        <Text style={styles.errorEmoji}>😵</Text>
+        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Pressable
+          testID="explorer-retry-unexpected"
+          style={styles.retryButton}
+          onPress={() => setRetryCount((c) => c + 1)}
+          accessibilityRole="button"
+        >
+          <Text style={styles.retryButtonText}>Try again</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   // Empty topic (root only, no children)
   if (tree.children.length === 0) {

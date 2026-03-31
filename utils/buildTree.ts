@@ -48,21 +48,25 @@ export function buildTree(nodes: TopicNode[]): TreeNode {
     throw new Error('No root node (depth=1) found');
   }
 
-  // Third pass: sort children by sort_order and resolve branchColor
-  resolveColors(root, root.color);
+  // Third pass: sort children, resolve branchColor, detect cycles
+  const visited = new Set<string>();
+  resolveColors(root, root.color, visited);
 
   return root;
 }
 
-function resolveColors(node: TreeNode, branchColor: string) {
-  // H2 nodes define their own branch color
+function resolveColors(node: TreeNode, branchColor: string, visited: Set<string>) {
+  if (visited.has(node.id)) {
+    throw new Error(`Cycle detected in node tree at node ${node.id}`);
+  }
+  visited.add(node.id);
+
   const color = node.depth === 2 ? node.color : branchColor;
   node.branchColor = color;
 
-  // Sort children by sort_order
   node.children.sort((a, b) => a.sort_order - b.sort_order);
 
   for (const child of node.children) {
-    resolveColors(child, color);
+    resolveColors(child, color, visited);
   }
 }

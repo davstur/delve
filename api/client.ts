@@ -1,5 +1,12 @@
 import { TopicWithStats, TopicNode } from '../types';
 
+export class NotFoundError extends Error {
+  constructor(message = 'Not found') {
+    super(message);
+    this.name = 'NotFoundError';
+  }
+}
+
 const BASE_URL = __DEV__
   ? 'http://localhost:8080'
   : 'https://delve-api-PLACEHOLDER.run.app';
@@ -47,7 +54,7 @@ export async function fetchTopicWithNodes(topicId: string): Promise<TopicWithNod
   const response = await fetchWithTimeout(`${BASE_URL}/api/topics/${topicId}`);
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error('Topic not found');
+      throw new NotFoundError('Topic not found');
     }
     throw new Error('Failed to fetch topic');
   }
