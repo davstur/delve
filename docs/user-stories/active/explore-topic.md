@@ -21,6 +21,13 @@ the big picture and drill into what interests me.
 ## Priority: 1
 ## Phase: 1 (Scaffold)
 
+## Implementation
+
+- Issue: #17 - Build CollapsibleSection component with visual hierarchy
+- Issue: #18 - Build Explorer screen with scrollable topic tree
+- Issue: #19 - Persist collapse state and scroll position per topic
+- Created: 2026-03-31
+
 ## Notes
 
 - This IS the core product experience — must feel smooth and intuitive
