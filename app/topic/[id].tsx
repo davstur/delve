@@ -8,7 +8,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { expandNode, fetchTopicWithNodes, NotFoundError } from '../../api/client';
+import {
+  createSubtopics,
+  expandNode,
+  fetchTopicWithNodes,
+  NotFoundError,
+  suggestSubtopics,
+} from '../../api/client';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
 import { buildTree } from '../../utils/buildTree';
 import type { TreeNode } from '../../types';
@@ -87,6 +93,41 @@ export default function ExplorerScreen() {
         console.error('Failed to update node in tree after successful expand:', treeErr);
         return prev;
       }
+    });
+  }, [id]);
+
+  const handleSuggestSubtopics = useCallback(async (nodeId: string) => {
+    if (!id) return [];
+    return suggestSubtopics(id, nodeId);
+  }, [id]);
+
+  const handleAddSubtopics = useCallback(async (nodeId: string, labels: string[]) => {
+    if (!id) return;
+    const newNodes = await createSubtopics(id, nodeId, labels);
+
+    let treeSyncFailed = false;
+    setTree((prev) => {
+      if (!prev) return prev;
+      try {
+        return addChildrenToTree(prev, nodeId, newNodes);
+      } catch (err) {
+        console.error('Failed to add subtopics to tree, will re-fetch:', err);
+        treeSyncFailed = true;
+        return prev;
+      }
+    });
+
+    if (treeSyncFailed) {
+      // Re-fetch entire topic to reconcile client with server
+      setRetryCount((c) => c + 1);
+      return;
+    }
+
+    // Expand the parent so new children are visible
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      next.add(nodeId);
+      return next;
     });
   }, [id]);
 
@@ -194,13 +235,15 @@ export default function ExplorerScreen() {
           childCount={tree.children.length}
           onToggle={toggleNode}
           onExpand={handleExpand}
+          onAddSubtopics={handleAddSubtopics}
+          onSuggestSubtopics={handleSuggestSubtopics}
         />
 
         {/* H2 Branches */}
         {tree.children.map((branch, index) => (
           <View key={branch.id}>
             {index > 0 && <View style={styles.divider} />}
-            {renderNode(branch, expandedNodes, toggleNode, handleExpand)}
+            {renderNode(branch, expandedNodes, toggleNode, handleExpand, handleAddSubtopics, handleSuggestSubtopics)}
           </View>
         ))}
       </ScrollView>
@@ -213,6 +256,8 @@ function renderNode(
   expandedNodes: Set<string>,
   toggleNode: (id: string) => void,
   onExpand: (nodeId: string, prompt?: string) => Promise<void>,
+  onAddSubtopics: (nodeId: string, labels: string[]) => Promise<void>,
+  onSuggestSubtopics: (nodeId: string) => Promise<{ label: string; emoji: string }[]>,
 ): React.ReactElement {
   const isExpanded = expandedNodes.has(node.id);
   const childCount = countDescendants(node);
@@ -231,11 +276,13 @@ function renderNode(
       childCount={childCount}
       onToggle={toggleNode}
       onExpand={onExpand}
+      onAddSubtopics={onAddSubtopics}
+      onSuggestSubtopics={onSuggestSubtopics}
     >
       {node.children.length > 0 && (
         <View style={{ marginTop: 8 }}>
           {node.children.map((child) =>
-            renderNode(child, expandedNodes, toggleNode, onExpand)
+            renderNode(child, expandedNodes, toggleNode, onExpand, onAddSubtopics, onSuggestSubtopics)
           )}
         </View>
       )}
@@ -265,6 +312,34 @@ function updateNodeInTree(tree: TreeNode, nodeId: string, updatedData: any): Tre
     ...tree,
     children: tree.children.map((child) =>
       updateNodeInTree(child, nodeId, updatedData)
+    ),
+  };
+}
+
+function addChildrenToTree(tree: TreeNode, parentId: string, newNodes: any[]): TreeNode {
+  if (tree.id === parentId) {
+    // Resolve branchColor for new children
+    const branchColor = tree.depth === 1
+      ? tree.color // H1 → children are H2 with own colors, but server sets parent color
+      : tree.branchColor;
+
+    const newChildren: TreeNode[] = newNodes.map((n) => ({
+      ...n,
+      children: [],
+      branchColor: n.depth === 2 ? (n.color || branchColor) : branchColor,
+    }));
+
+    return {
+      ...tree,
+      children: [...tree.children, ...newChildren].sort(
+        (a, b) => a.sort_order - b.sort_order
+      ),
+    };
+  }
+  return {
+    ...tree,
+    children: tree.children.map((child) =>
+      addChildrenToTree(child, parentId, newNodes)
     ),
   };
 }

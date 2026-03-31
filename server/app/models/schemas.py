@@ -57,6 +57,40 @@ class ExpandNodeRequest(BaseModel):
         return v
 
 
+class SubtopicSuggestion(BaseModel):
+    label: str
+    emoji: str
+
+
+class SuggestSubtopicsResponse(BaseModel):
+    suggestions: list[SubtopicSuggestion]
+
+
+class CreateSubtopicsRequest(BaseModel):
+    labels: list[str]
+
+    @field_validator("labels")
+    @classmethod
+    def validate_labels(cls, v: list[str]) -> list[str]:
+        if len(v) < 1:
+            raise ValueError("Must provide at least 1 label")
+        if len(v) > 5:
+            raise ValueError("Must provide at most 5 labels")
+        cleaned = []
+        for label in v:
+            label = label.strip()
+            if len(label) < 2:
+                raise ValueError(f"Label too short: '{label}'")
+            if len(label) > 100:
+                raise ValueError(f"Label too long: '{label}'")
+            cleaned.append(label)
+        return cleaned
+
+
+class CreateSubtopicsAIResponse(BaseModel):
+    children: list[BranchModel]
+
+
 class CreateTopicRequest(BaseModel):
     title: str
 

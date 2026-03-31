@@ -28,6 +28,8 @@ interface CollapsibleSectionProps {
   childCount: number;
   onToggle: (nodeId: string) => void;
   onExpand?: (nodeId: string, prompt?: string) => Promise<void>;
+  onAddSubtopics?: (nodeId: string, labels: string[]) => Promise<void>;
+  onSuggestSubtopics?: (nodeId: string) => Promise<{ label: string; emoji: string }[]>;
   children?: React.ReactNode;
 }
 
@@ -52,6 +54,8 @@ function CollapsibleSectionInner({
   childCount,
   onToggle,
   onExpand,
+  onAddSubtopics,
+  onSuggestSubtopics,
   children,
 }: CollapsibleSectionProps) {
   const isRoot = depth === 1;
@@ -61,6 +65,15 @@ function CollapsibleSectionInner({
   const [expandPrompt, setExpandPrompt] = useState('');
   const [isExpanding, setIsExpanding] = useState(false);
   const [expandError, setExpandError] = useState<string | null>(null);
+
+  // Subtopic panel state
+  const [subtopicPanelOpen, setSubtopicPanelOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<{ label: string; emoji: string }[]>([]);
+  const [selectedLabels, setSelectedLabels] = useState<Set<string>>(new Set());
+  const [customLabel, setCustomLabel] = useState('');
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isCreatingSubtopics, setIsCreatingSubtopics] = useState(false);
+  const [subtopicError, setSubtopicError] = useState<string | null>(null);
 
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 1 : 0, { duration: 200 });
@@ -100,9 +113,71 @@ function CollapsibleSectionInner({
     }
   }, [onExpand, nodeId, expandPrompt, isExpanding]);
 
-  const handleSubtopicsChipPress = useCallback(() => {
-    Alert.alert('Coming soon', 'This feature is coming in a future update.');
+  const handleSubtopicsChipPress = useCallback(async () => {
+    if (!onSuggestSubtopics || !onAddSubtopics) {
+      Alert.alert('Coming soon', 'This feature is coming in a future update.');
+      return;
+    }
+
+    // If panel is open, just close it
+    if (subtopicPanelOpen) {
+      setSubtopicPanelOpen(false);
+      setSubtopicError(null);
+      return;
+    }
+
+    // Open panel and fetch suggestions if needed
+    setSubtopicPanelOpen(true);
+    setSubtopicError(null);
+
+    if (suggestions.length === 0) {
+      setIsSuggesting(true);
+      try {
+        const results = await onSuggestSubtopics(nodeId);
+        setSuggestions(results);
+      } catch (e: any) {
+        setSubtopicError(e?.message || 'Failed to get suggestions. Try again.');
+      } finally {
+        setIsSuggesting(false);
+      }
+    }
+  }, [onSuggestSubtopics, onAddSubtopics, nodeId, subtopicPanelOpen, suggestions.length]);
+
+  const toggleSuggestion = useCallback((label: string) => {
+    setSelectedLabels((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
   }, []);
+
+  const addCustomLabel = useCallback(() => {
+    const trimmed = customLabel.trim();
+    if (trimmed.length >= 2) {
+      setSelectedLabels((prev) => new Set(prev).add(trimmed));
+      setCustomLabel('');
+    }
+  }, [customLabel]);
+
+  const handleCreateSubtopics = useCallback(async () => {
+    if (!onAddSubtopics || isCreatingSubtopics || selectedLabels.size === 0) return;
+    setIsCreatingSubtopics(true);
+    setSubtopicError(null);
+    try {
+      await onAddSubtopics(nodeId, Array.from(selectedLabels));
+      setSubtopicPanelOpen(false);
+      setSuggestions([]);
+      setSelectedLabels(new Set());
+    } catch (e: any) {
+      setSubtopicError(e?.message || 'Failed to create subtopics. Try again.');
+    } finally {
+      setIsCreatingSubtopics(false);
+    }
+  }, [onAddSubtopics, nodeId, selectedLabels, isCreatingSubtopics]);
 
   // Sources may come as string (JSONB from Supabase) or array
   const parsedSources: Source[] = React.useMemo(() => {
@@ -193,12 +268,15 @@ function CollapsibleSectionInner({
             {!isMaxDepth && (
               <Pressable
                 testID={`chip-subtopics-${nodeId}`}
-                style={styles.chip}
+                style={[styles.chip, subtopicPanelOpen && styles.chipActive]}
                 onPress={handleSubtopicsChipPress}
+                disabled={isCreatingSubtopics}
                 accessibilityRole="button"
                 accessibilityLabel="Add subtopics"
               >
-                <Text style={styles.chipText}>➕ Add subtopics</Text>
+                <Text style={styles.chipText}>
+                  {isCreatingSubtopics ? '⏳ Creating...' : '➕ Add subtopics'}
+                </Text>
               </Pressable>
             )}
           </View>
@@ -241,6 +319,84 @@ function CollapsibleSectionInner({
           {expandError && (
             <View testID={`expand-error-${nodeId}`} style={styles.expandErrorRow}>
               <Text style={styles.expandErrorText}>{expandError}</Text>
+            </View>
+          )}
+
+          {/* Subtopic panel */}
+          {subtopicPanelOpen && !isCreatingSubtopics && (
+            <View testID={`subtopic-panel-${nodeId}`} style={styles.subtopicPanel}>
+              {isSuggesting ? (
+                <View style={styles.expandLoading}>
+                  <ActivityIndicator size="small" color="#4F46E5" />
+                  <Text style={styles.expandLoadingText}>Finding subtopics...</Text>
+                </View>
+              ) : (
+                <>
+                  {suggestions.length > 0 && (
+                    <View style={styles.suggestionRow}>
+                      {suggestions.map((s) => (
+                        <Pressable
+                          key={s.label}
+                          testID={`suggestion-${s.label}`}
+                          style={[
+                            styles.suggestionChip,
+                            selectedLabels.has(s.label) && styles.suggestionSelected,
+                          ]}
+                          onPress={() => toggleSuggestion(s.label)}
+                        >
+                          <Text style={styles.suggestionText}>
+                            {s.emoji} {s.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                  <View style={styles.expandPanel}>
+                    <TextInput
+                      testID={`subtopic-custom-input-${nodeId}`}
+                      style={styles.expandInput}
+                      placeholder="or type a custom subtopic..."
+                      placeholderTextColor="#8888A0"
+                      value={customLabel}
+                      onChangeText={setCustomLabel}
+                      returnKeyType="done"
+                      onSubmitEditing={addCustomLabel}
+                    />
+                    <Pressable
+                      testID={`subtopic-add-custom-${nodeId}`}
+                      style={styles.expandGoButton}
+                      onPress={addCustomLabel}
+                    >
+                      <Text style={styles.expandGoText}>+</Text>
+                    </Pressable>
+                  </View>
+                  {selectedLabels.size > 0 && (
+                    <Pressable
+                      testID={`subtopic-create-${nodeId}`}
+                      style={styles.createButton}
+                      onPress={handleCreateSubtopics}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.createButtonText}>
+                        Create {selectedLabels.size} subtopic{selectedLabels.size > 1 ? 's' : ''}
+                      </Text>
+                    </Pressable>
+                  )}
+                </>
+              )}
+            </View>
+          )}
+
+          {isCreatingSubtopics && (
+            <View style={styles.expandLoading}>
+              <ActivityIndicator size="small" color="#4F46E5" />
+              <Text style={styles.expandLoadingText}>Creating subtopics...</Text>
+            </View>
+          )}
+
+          {subtopicPanelOpen && subtopicError && (
+            <View style={styles.expandErrorRow}>
+              <Text style={styles.expandErrorText}>{subtopicError}</Text>
             </View>
           )}
 
@@ -368,5 +524,42 @@ const styles = StyleSheet.create({
   expandErrorText: {
     color: '#EF4444',
     fontSize: 13,
+  },
+  subtopicPanel: {
+    marginTop: 8,
+    gap: 8,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  suggestionChip: {
+    backgroundColor: '#2A2A36',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#2A2A36',
+  },
+  suggestionSelected: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#1E1B4B',
+  },
+  suggestionText: {
+    color: '#F0F0F5',
+    fontSize: 13,
+  },
+  createButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  createButtonText: {
+    color: '#F0F0F5',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
