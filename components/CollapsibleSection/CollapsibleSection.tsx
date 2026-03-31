@@ -114,24 +114,32 @@ function CollapsibleSectionInner({
   }, [onExpand, nodeId, expandPrompt, isExpanding]);
 
   const handleSubtopicsChipPress = useCallback(async () => {
-    if (onSuggestSubtopics && onAddSubtopics) {
-      setSubtopicPanelOpen((prev) => !prev);
-      setSubtopicError(null);
-
-      // Fetch suggestions on first open
-      if (!subtopicPanelOpen && suggestions.length === 0) {
-        setIsSuggesting(true);
-        try {
-          const results = await onSuggestSubtopics(nodeId);
-          setSuggestions(results);
-        } catch (e: any) {
-          setSubtopicError(e?.message || 'Failed to get suggestions. Try again.');
-        } finally {
-          setIsSuggesting(false);
-        }
-      }
-    } else {
+    if (!onSuggestSubtopics || !onAddSubtopics) {
       Alert.alert('Coming soon', 'This feature is coming in a future update.');
+      return;
+    }
+
+    // If panel is open, just close it
+    if (subtopicPanelOpen) {
+      setSubtopicPanelOpen(false);
+      setSubtopicError(null);
+      return;
+    }
+
+    // Open panel and fetch suggestions if needed
+    setSubtopicPanelOpen(true);
+    setSubtopicError(null);
+
+    if (suggestions.length === 0) {
+      setIsSuggesting(true);
+      try {
+        const results = await onSuggestSubtopics(nodeId);
+        setSuggestions(results);
+      } catch (e: any) {
+        setSubtopicError(e?.message || 'Failed to get suggestions. Try again.');
+      } finally {
+        setIsSuggesting(false);
+      }
     }
   }, [onSuggestSubtopics, onAddSubtopics, nodeId, subtopicPanelOpen, suggestions.length]);
 
@@ -386,7 +394,7 @@ function CollapsibleSectionInner({
             </View>
           )}
 
-          {subtopicError && (
+          {subtopicPanelOpen && subtopicError && (
             <View style={styles.expandErrorRow}>
               <Text style={styles.expandErrorText}>{subtopicError}</Text>
             </View>

@@ -296,7 +296,11 @@ def suggest_subtopics(
 
     for block in response.content:
         if block.type == "tool_use" and block.name == "suggest_subtopics_result":
-            return block.input.get("suggestions", [])
+            suggestions = block.input.get("suggestions")
+            if not isinstance(suggestions, list) or len(suggestions) == 0:
+                logger.error("AI returned empty/malformed suggestions: %s", list(block.input.keys()))
+                raise ValueError("AI returned no suggestions")
+            return suggestions
 
     raise ValueError("AI did not return subtopic suggestions")
 
@@ -344,10 +348,14 @@ def create_subtopics(
     for block in response.content:
         if block.type == "tool_use" and block.name == "create_subtopics_result":
             data = block.input
-            for child in data.get("children", []):
+            children = data.get("children")
+            if not isinstance(children, list) or len(children) == 0:
+                logger.error("AI returned empty/malformed children: %s", list(data.keys()))
+                raise ValueError("AI returned no subtopic content")
+            for child in children:
                 if "summary" in child and isinstance(child["summary"], str):
                     child["summary"] = _CITE_RE.sub("", child["summary"])
-            return data.get("children", [])
+            return children
 
     # Fallback
     block_types = [b.type for b in response.content]

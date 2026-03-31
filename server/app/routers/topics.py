@@ -403,6 +403,15 @@ def create_node_subtopics(
         logger.error("Subtopics validation failed: %s\nRaw: %s", e, str(children_data)[:500])
         raise HTTPException(status_code=502, detail="AI returned invalid subtopic data")
 
+    if len(ai_response.children) == 0:
+        raise HTTPException(status_code=502, detail="AI failed to generate subtopic content")
+
+    if len(ai_response.children) != len(request.labels):
+        logger.warning(
+            "AI returned %d children for %d labels. Labels: %s",
+            len(ai_response.children), len(request.labels), request.labels,
+        )
+
     # Create version snapshot (after AI success, before mutation)
     all_nodes_result = supabase.table("nodes").select("*").eq(
         "topic_id", topic_id_str
@@ -414,6 +423,12 @@ def create_node_subtopics(
         "action": "create_subtopics",
     }).execute()
     version_id = version_result.data[0]["id"]
+
+    # Re-query max_sort right before insert (DEC-004 — avoid stale sort_order)
+    fresh_sort = supabase.table("nodes").select("sort_order").eq(
+        "parent_id", node_id_str
+    ).execute()
+    max_sort = max((c["sort_order"] for c in fresh_sort.data), default=-1)
 
     # Insert child nodes
     nodes_to_insert = []

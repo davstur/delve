@@ -105,15 +105,23 @@ export default function ExplorerScreen() {
     if (!id) return;
     const newNodes = await createSubtopics(id, nodeId, labels);
 
+    let treeSyncFailed = false;
     setTree((prev) => {
       if (!prev) return prev;
       try {
         return addChildrenToTree(prev, nodeId, newNodes);
       } catch (err) {
-        console.error('Failed to add subtopics to tree:', err);
+        console.error('Failed to add subtopics to tree, will re-fetch:', err);
+        treeSyncFailed = true;
         return prev;
       }
     });
+
+    if (treeSyncFailed) {
+      // Re-fetch entire topic to reconcile client with server
+      setRetryCount((c) => c + 1);
+      return;
+    }
 
     // Expand the parent so new children are visible
     setExpandedNodes((prev) => {
