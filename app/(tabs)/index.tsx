@@ -31,7 +31,7 @@ export default function HomeScreen() {
       const data = await fetchTopics();
       setTopics(data);
       setLoadError(null);
-    } catch (e: any) {
+    } catch {
       setLoadError('Could not load topics. Pull to refresh.');
     } finally {
       setIsLoading(false);
