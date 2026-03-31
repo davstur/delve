@@ -1,5 +1,13 @@
-import React, { useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -19,6 +27,7 @@ interface CollapsibleSectionProps {
   isExpanded: boolean;
   childCount: number;
   onToggle: (nodeId: string) => void;
+  onExpand?: (nodeId: string, prompt?: string) => Promise<void>;
   children?: React.ReactNode;
 }
 
@@ -42,13 +51,17 @@ function CollapsibleSectionInner({
   isExpanded,
   childCount,
   onToggle,
+  onExpand,
   children,
 }: CollapsibleSectionProps) {
   const isRoot = depth === 1;
   const isMaxDepth = depth === 4;
   const chevronRotation = useSharedValue(isExpanded ? 1 : 0);
+  const [expandPanelOpen, setExpandPanelOpen] = useState(false);
+  const [expandPrompt, setExpandPrompt] = useState('');
+  const [isExpanding, setIsExpanding] = useState(false);
+  const [expandError, setExpandError] = useState<string | null>(null);
 
-  // Update animation when isExpanded changes
   React.useEffect(() => {
     chevronRotation.value = withTiming(isExpanded ? 1 : 0, { duration: 200 });
   }, [isExpanded, chevronRotation]);
@@ -63,7 +76,31 @@ function CollapsibleSectionInner({
     }
   }, [isRoot, nodeId, onToggle]);
 
-  const handleChipPress = useCallback(() => {
+  const handleExpandChipPress = useCallback(() => {
+    if (onExpand) {
+      setExpandPanelOpen((prev) => !prev);
+      setExpandError(null);
+    } else {
+      Alert.alert('Coming soon', 'This feature is coming in a future update.');
+    }
+  }, [onExpand]);
+
+  const handleExpandSubmit = useCallback(async () => {
+    if (!onExpand || isExpanding) return;
+    setIsExpanding(true);
+    setExpandError(null);
+    try {
+      await onExpand(nodeId, expandPrompt.trim() || undefined);
+      setExpandPanelOpen(false);
+      setExpandPrompt('');
+    } catch (e: any) {
+      setExpandError(e?.message || 'Expansion failed. Try again.');
+    } finally {
+      setIsExpanding(false);
+    }
+  }, [onExpand, nodeId, expandPrompt, isExpanding]);
+
+  const handleSubtopicsChipPress = useCallback(() => {
     Alert.alert('Coming soon', 'This feature is coming in a future update.');
   }, []);
 
@@ -143,18 +180,21 @@ function CollapsibleSectionInner({
           <View testID={`section-chips-${nodeId}`} style={styles.chipRow}>
             <Pressable
               testID={`chip-expand-${nodeId}`}
-              style={styles.chip}
-              onPress={handleChipPress}
+              style={[styles.chip, expandPanelOpen && styles.chipActive]}
+              onPress={handleExpandChipPress}
+              disabled={isExpanding}
               accessibilityRole="button"
               accessibilityLabel="Expand this section"
             >
-              <Text style={styles.chipText}>✨ Expand</Text>
+              <Text style={styles.chipText}>
+                {isExpanding ? '⏳ Expanding...' : '✨ Expand'}
+              </Text>
             </Pressable>
             {!isMaxDepth && (
               <Pressable
                 testID={`chip-subtopics-${nodeId}`}
                 style={styles.chip}
-                onPress={handleChipPress}
+                onPress={handleSubtopicsChipPress}
                 accessibilityRole="button"
                 accessibilityLabel="Add subtopics"
               >
@@ -162,6 +202,47 @@ function CollapsibleSectionInner({
               </Pressable>
             )}
           </View>
+
+          {/* Expand panel (inline) */}
+          {expandPanelOpen && !isExpanding && (
+            <View testID={`expand-panel-${nodeId}`} style={styles.expandPanel}>
+              <TextInput
+                testID={`expand-input-${nodeId}`}
+                style={styles.expandInput}
+                placeholder="focus on... (optional)"
+                placeholderTextColor="#8888A0"
+                value={expandPrompt}
+                onChangeText={setExpandPrompt}
+                returnKeyType="go"
+                onSubmitEditing={handleExpandSubmit}
+                autoCapitalize="sentences"
+              />
+              <Pressable
+                testID={`expand-go-${nodeId}`}
+                style={styles.expandGoButton}
+                onPress={handleExpandSubmit}
+                accessibilityRole="button"
+                accessibilityLabel="Expand with optional focus"
+              >
+                <Text style={styles.expandGoText}>Go</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Expand loading */}
+          {isExpanding && (
+            <View testID={`expand-loading-${nodeId}`} style={styles.expandLoading}>
+              <ActivityIndicator size="small" color="#4F46E5" />
+              <Text style={styles.expandLoadingText}>Expanding...</Text>
+            </View>
+          )}
+
+          {/* Expand error */}
+          {expandError && (
+            <View testID={`expand-error-${nodeId}`} style={styles.expandErrorRow}>
+              <Text style={styles.expandErrorText}>{expandError}</Text>
+            </View>
+          )}
 
           {/* Nested children */}
           {children}
@@ -236,8 +317,56 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
   },
+  chipActive: {
+    backgroundColor: '#4F46E5',
+  },
   chipText: {
     color: '#8888A0',
+    fontSize: 13,
+  },
+  expandPanel: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  expandInput: {
+    flex: 1,
+    backgroundColor: '#0F0F14',
+    color: '#F0F0F5',
+    fontSize: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2A2A36',
+  },
+  expandGoButton: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  expandGoText: {
+    color: '#F0F0F5',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  expandLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  expandLoadingText: {
+    color: '#8888A0',
+    fontSize: 13,
+  },
+  expandErrorRow: {
+    marginTop: 8,
+  },
+  expandErrorText: {
+    color: '#EF4444',
     fontSize: 13,
   },
 });

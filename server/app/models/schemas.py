@@ -34,6 +34,17 @@ class CreateTopicAIResponse(BaseModel):
         return v
 
 
+class ExpandNodeAIResponse(BaseModel):
+    """Validates the JSON returned by Claude for EXPAND_NODE."""
+
+    summary: str
+    sources: list[SourceModel] = []
+
+
+class ExpandNodeRequest(BaseModel):
+    prompt: str | None = None
+
+
 class CreateTopicRequest(BaseModel):
     title: str
 

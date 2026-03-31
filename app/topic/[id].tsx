@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { fetchTopicWithNodes, NotFoundError } from '../../api/client';
+import { expandNode, fetchTopicWithNodes, NotFoundError } from '../../api/client';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
 import { buildTree } from '../../utils/buildTree';
 import type { TreeNode } from '../../types';
@@ -72,6 +72,17 @@ export default function ExplorerScreen() {
       return next;
     });
   }, []);
+
+  const handleExpand = useCallback(async (nodeId: string, prompt?: string) => {
+    if (!id) return;
+    const updatedNode = await expandNode(id, nodeId, prompt);
+
+    // Update the node in the tree in-place
+    setTree((prev) => {
+      if (!prev) return prev;
+      return updateNodeInTree(prev, nodeId, updatedNode);
+    });
+  }, [id]);
 
   // Loading
   if (isLoading) {
@@ -176,13 +187,14 @@ export default function ExplorerScreen() {
           isExpanded={true}
           childCount={tree.children.length}
           onToggle={toggleNode}
+          onExpand={handleExpand}
         />
 
         {/* H2 Branches */}
         {tree.children.map((branch, index) => (
           <View key={branch.id}>
             {index > 0 && <View style={styles.divider} />}
-            {renderNode(branch, expandedNodes, toggleNode)}
+            {renderNode(branch, expandedNodes, toggleNode, handleExpand)}
           </View>
         ))}
       </ScrollView>
@@ -194,6 +206,7 @@ function renderNode(
   node: TreeNode,
   expandedNodes: Set<string>,
   toggleNode: (id: string) => void,
+  onExpand: (nodeId: string, prompt?: string) => Promise<void>,
 ): React.ReactElement {
   const isExpanded = expandedNodes.has(node.id);
   const childCount = countDescendants(node);
@@ -211,11 +224,12 @@ function renderNode(
       isExpanded={isExpanded}
       childCount={childCount}
       onToggle={toggleNode}
+      onExpand={onExpand}
     >
       {node.children.length > 0 && (
         <View style={{ marginTop: 8 }}>
           {node.children.map((child) =>
-            renderNode(child, expandedNodes, toggleNode)
+            renderNode(child, expandedNodes, toggleNode, onExpand)
           )}
         </View>
       )}
@@ -229,6 +243,24 @@ function countDescendants(node: TreeNode): number {
     count += countDescendants(child);
   }
   return count;
+}
+
+function updateNodeInTree(tree: TreeNode, nodeId: string, updatedData: any): TreeNode {
+  if (tree.id === nodeId) {
+    return {
+      ...tree,
+      summary: updatedData.summary ?? tree.summary,
+      sources: updatedData.sources ?? tree.sources,
+      updated_at: updatedData.updated_at ?? tree.updated_at,
+      version_id: updatedData.version_id ?? tree.version_id,
+    };
+  }
+  return {
+    ...tree,
+    children: tree.children.map((child) =>
+      updateNodeInTree(child, nodeId, updatedData)
+    ),
+  };
 }
 
 const styles = StyleSheet.create({

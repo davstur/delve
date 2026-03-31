@@ -4,8 +4,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
-from app.models.schemas import CreateTopicAIResponse, CreateTopicRequest
-from app.services.ai import generate_topic
+from app.models.schemas import (
+    CreateTopicAIResponse,
+    CreateTopicRequest,
+    ExpandNodeAIResponse,
+    ExpandNodeRequest,
+)
+from app.services.ai import expand_node, generate_topic
 from app.services.database import get_supabase
 from app.services.topics import get_topic_with_nodes, list_topics
 
@@ -123,6 +128,97 @@ def create_topic(request: CreateTopicRequest):
         logger.error("Topic %s not found immediately after creation", topic_id)
         raise HTTPException(status_code=500, detail="Topic created but could not be retrieved")
     return result
+
+
+@router.post("/{topic_id}/nodes/{node_id}/expand")
+def expand_topic_node(topic_id: UUID, node_id: UUID, request: ExpandNodeRequest):
+    """Expand a node with richer AI-generated content."""
+    supabase = get_supabase()
+    topic_id_str = str(topic_id)
+    node_id_str = str(node_id)
+
+    # Fetch the node
+    node_result = supabase.table("nodes").select("*").eq(
+        "id", node_id_str
+    ).eq("topic_id", topic_id_str).maybe_single().execute()
+
+    if not node_result or not node_result.data:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    node = node_result.data
+
+    # Fetch topic title
+    topic_result = supabase.table("topics").select("title").eq(
+        "id", topic_id_str
+    ).maybe_single().execute()
+
+    if not topic_result or not topic_result.data:
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    topic_title = topic_result.data["title"]
+
+    # Build ancestor chain (walk parent_id to root)
+    ancestors = []
+    current = node
+    while current.get("parent_id"):
+        parent_result = supabase.table("nodes").select("id,label,parent_id").eq(
+            "id", current["parent_id"]
+        ).maybe_single().execute()
+        if not parent_result or not parent_result.data:
+            break
+        ancestors.insert(0, parent_result.data["label"])
+        current = parent_result.data
+    ancestor_path = " > ".join([*ancestors, node["label"]])
+
+    # Create version snapshot before mutation
+    all_nodes_result = supabase.table("nodes").select("*").eq(
+        "topic_id", topic_id_str
+    ).execute()
+
+    version_result = supabase.table("versions").insert({
+        "topic_id": topic_id_str,
+        "snapshot": json.dumps(all_nodes_result.data),
+        "action": "expand",
+    }).execute()
+    version_id = version_result.data[0]["id"]
+
+    # Call Claude AI
+    try:
+        raw = expand_node(
+            topic_title=topic_title,
+            ancestor_path=ancestor_path,
+            current_summary=node["summary"],
+            user_prompt=request.prompt,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    except Exception as e:
+        logger.error("AI expand failed: %s", e)
+        raise HTTPException(status_code=502, detail="AI expansion failed")
+
+    # Validate AI response
+    try:
+        ai_response = ExpandNodeAIResponse(**raw)
+    except Exception as e:
+        logger.error("Expand validation failed: %s\nRaw: %s", e, str(raw)[:500])
+        raise HTTPException(status_code=502, detail="AI returned an invalid response")
+
+    # Update node
+    from datetime import datetime, timezone
+
+    supabase.table("nodes").update({
+        "summary": ai_response.summary,
+        "sources": json.dumps([s.model_dump() for s in ai_response.sources]),
+        "version_id": version_id,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", node_id_str).execute()
+
+    # Return the updated node
+    updated = supabase.table("nodes").select("*").eq(
+        "id", node_id_str
+    ).maybe_single().execute()
+
+    return updated.data if updated and updated.data else node
 
 
 def _cleanup_partial_insert(
