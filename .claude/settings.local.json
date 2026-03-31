@@ -13,7 +13,10 @@
       "Bash(supabase db:*)",
       "Bash(psql:*)",
       "Bash(docker exec:*)",
-      "Bash(poetry run:*)"
+      "Bash(poetry run:*)",
+      "Bash(kill 87083)",
+      "Bash(wait 87083)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }
