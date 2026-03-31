@@ -31,3 +31,8 @@ export interface TopicNode {
   updated_at: string;
   version_id: string;
 }
+
+export interface TreeNode extends TopicNode {
+  children: TreeNode[];
+  branchColor: string;
+}
