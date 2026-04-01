@@ -29,3 +29,9 @@ previous version, so I can undo AI changes I don't like.
 - Full JSON snapshots, not diffs — simplicity over storage efficiency
 - The version history doubles as an activity log: "March 29 — expanded Pipeline"
 - This is safety net that lets users explore fearlessly
+
+## Implementation
+
+- Issue: #29 - Implement version history and restore API endpoints
+- Issue: #30 - Build version history UI with timeline, viewer, and restore
+- Created: 2026-04-01
