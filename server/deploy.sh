@@ -3,6 +3,7 @@ set -euo pipefail
 
 SERVICE_NAME="delve-api"
 REGION="europe-west1"
+PROJECT="delve-492007"
 
 # Load .env into associative array
 declare -A env_vars
@@ -23,7 +24,7 @@ done
 # Override for production
 env_vars["ENVIRONMENT"]="production"
 
-# Generate .env.cloudrun.yaml
+# Generate .env.cloudrun.yaml (cleaned up after deploy)
 ENV_FILE=".env.cloudrun.yaml"
 trap 'rm -f "$ENV_FILE"' EXIT
 
@@ -32,10 +33,11 @@ for key in "${!env_vars[@]}"; do
     echo "$key: \"${env_vars[$key]}\"" >> "$ENV_FILE"
 done
 
-echo "Deploying $SERVICE_NAME to $REGION..."
+echo "Deploying $SERVICE_NAME to $PROJECT ($REGION)..."
 
 # Public API — authentication handled at the application layer
 gcloud run deploy "$SERVICE_NAME" \
+    --project "$PROJECT" \
     --source . \
     --region "$REGION" \
     --allow-unauthenticated \
@@ -47,7 +49,17 @@ gcloud run deploy "$SERVICE_NAME" \
     --env-vars-file "$ENV_FILE" \
     --quiet
 
-URL=$(gcloud run services describe "$SERVICE_NAME" --region "$REGION" --format 'value(status.url)')
+URL=$(gcloud run services describe "$SERVICE_NAME" --project "$PROJECT" --region "$REGION" --format 'value(status.url)')
 echo ""
 echo "Deployed: $URL"
 echo "Health:   $URL/health"
+
+# Verify health check
+echo ""
+echo "Verifying health..."
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health")
+if [ "$HTTP_CODE" = "200" ]; then
+    echo "Health check passed (200 OK)"
+else
+    echo "WARNING: Health check returned $HTTP_CODE"
+fi
