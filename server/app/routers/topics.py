@@ -474,7 +474,7 @@ def list_versions(topic_id: UUID):
 
     versions_result = supabase.table("versions").select(
         "id,action,created_at,snapshot"
-    ).eq("topic_id", topic_id_str).order("created_at", desc=True).execute()
+    ).eq("topic_id", topic_id_str).order("created_at", desc=True).limit(50).execute()
 
     # Extract a label from each snapshot for display
     versions = []
@@ -571,14 +571,19 @@ def restore_version(topic_id: UUID, version_id: UUID):
     new_version_id = restore_version_result.data[0]["id"]
 
     # Step 2: Delete all current nodes (children first due to RESTRICT FK)
-    # Delete in reverse depth order to respect parent_id RESTRICT
-    for depth in [4, 3, 2, 1]:
-        supabase.table("nodes").delete().eq(
-            "topic_id", topic_id_str
-        ).eq("depth", depth).execute()
+    try:
+        for depth in [4, 3, 2, 1]:
+            supabase.table("nodes").delete().eq(
+                "topic_id", topic_id_str
+            ).eq("depth", depth).execute()
+    except Exception as e:
+        logger.error("Failed to delete nodes for restore: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to prepare topic for restore. No content was lost.",
+        )
 
-    # Step 3: Insert nodes from snapshot — need ID remapping for parent_id FKs
-    # Sort by depth so parents are inserted before children
+    # Step 3: Insert nodes from snapshot with ID remapping
     snapshot.sort(key=lambda n: n.get("depth", 1))
     old_to_new_id: dict[str, str] = {}
 
@@ -586,13 +591,25 @@ def restore_version(topic_id: UUID, version_id: UUID):
         for node in snapshot:
             old_id = node.get("id")
             old_parent = node.get("parent_id")
-            new_parent = old_to_new_id.get(old_parent) if old_parent else None
 
+            # Remap parent_id; skip nodes with unresolvable parents
+            if old_parent:
+                new_parent = old_to_new_id.get(old_parent)
+                if new_parent is None:
+                    logger.warning("Skipping node %s: parent %s not in snapshot", old_id, old_parent)
+                    continue
+            else:
+                new_parent = None
+
+            # Sources: pass as-is if list (Supabase handles JSONB), parse if string
             sources = node.get("sources", [])
-            if isinstance(sources, list):
-                sources = json.dumps(sources)
-            elif not isinstance(sources, str):
-                sources = "[]"
+            if isinstance(sources, str):
+                try:
+                    sources = json.loads(sources)
+                except (json.JSONDecodeError, TypeError):
+                    sources = []
+            elif not isinstance(sources, list):
+                sources = []
 
             insert_data = {
                 "topic_id": topic_id_str,
@@ -613,8 +630,22 @@ def restore_version(topic_id: UUID, version_id: UUID):
             if old_id:
                 old_to_new_id[old_id] = new_id
     except Exception as e:
-        logger.error("Failed to restore nodes: %s", e)
-        raise HTTPException(status_code=500, detail="Failed to restore version")
+        logger.error("Failed to insert restored nodes: %s", e)
+        # Attempt recovery: re-insert from pre-restore backup
+        try:
+            for depth in [4, 3, 2, 1]:
+                supabase.table("nodes").delete().eq(
+                    "topic_id", topic_id_str
+                ).eq("depth", depth).execute()
+            for orig in sorted(current_nodes.data, key=lambda n: n.get("depth", 1)):
+                supabase.table("nodes").insert(orig).execute()
+            logger.info("Recovery succeeded for topic %s", topic_id_str)
+        except Exception as recovery_err:
+            logger.error("CRITICAL: recovery also failed for topic %s: %s", topic_id_str, recovery_err)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Restore failed. Your previous state was saved as version {new_version_id}.",
+        )
 
     # Return restored topic
     return get_topic_with_nodes(topic_id_str)

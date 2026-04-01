@@ -168,14 +168,22 @@ export default function ExplorerScreen() {
     }
   }, [id]);
 
+  const [isRestoring, setIsRestoring] = useState(false);
+
   const viewSnapshot = useCallback(async (versionId: string) => {
     if (!id) return;
     try {
       const data = await fetchVersionSnapshot(id, versionId);
-      if (data.nodes.length > 0) {
+      if (data.nodes.length === 0) {
+        Alert.alert('Empty version', 'This version has no content to display.');
+        return;
+      }
+      try {
         const snapTree = buildTree(data.nodes);
         setSnapshotTree(snapTree);
         setViewingVersion(versionId);
+      } catch {
+        Alert.alert('Cannot display version', 'This version\'s data appears to be corrupted.');
       }
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to load version');
@@ -183,18 +191,20 @@ export default function ExplorerScreen() {
   }, [id]);
 
   const handleRestore = useCallback(async (versionId: string) => {
-    if (!id) return;
+    if (!id || isRestoring) return;
+    setIsRestoring(true);
     try {
       await restoreVersion(id, versionId);
       setShowHistory(false);
       setSnapshotTree(null);
       setViewingVersion(null);
-      // Refetch the topic to get restored content
       setRetryCount((c) => c + 1);
     } catch (e: any) {
       Alert.alert('Restore failed', e?.message || 'Could not restore version');
+    } finally {
+      setIsRestoring(false);
     }
-  }, [id]);
+  }, [id, isRestoring]);
 
   // Loading
   if (isLoading) {
@@ -322,7 +332,14 @@ export default function ExplorerScreen() {
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          {renderNode(snapshotTree, new Set([snapshotTree.id, ...snapshotTree.children.map(c => c.id)]), () => {}, async () => {}, async () => {}, async () => [])}
+          {renderNode(
+            snapshotTree,
+            new Set([snapshotTree.id, ...snapshotTree.children.map(c => c.id)]),
+            () => {},
+            async () => { Alert.alert('Read-only', 'This is a snapshot preview.'); },
+            async () => { Alert.alert('Read-only', 'This is a snapshot preview.'); },
+            async () => [],
+          )}
         </ScrollView>
       </View>
     );
