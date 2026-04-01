@@ -9,7 +9,7 @@ export class NotFoundError extends Error {
 
 const BASE_URL = __DEV__
   ? 'http://localhost:8080'
-  : 'https://delve-api-PLACEHOLDER.run.app';
+  : 'https://delve-api-912297138941.europe-west1.run.app';
 
 const TIMEOUT_MS = 120_000;
 

@@ -34,11 +34,11 @@ done
 
 echo "Deploying $SERVICE_NAME to $REGION..."
 
+# Public API — authentication handled at the application layer
 gcloud run deploy "$SERVICE_NAME" \
     --source . \
     --region "$REGION" \
-    --allow-unauthenticated \ # Public API — no IAM auth; app-level auth added later
-
+    --allow-unauthenticated \
     --memory 512Mi \
     --cpu 1 \
     --min-instances 0 \
