@@ -33,8 +33,9 @@ export default function ExplorerScreen() {
     expandedNodes,
     toggleNode,
     setExpandedNodes,
+    loaded: collapseStateLoaded,
   } = usePersistedCollapseState(id, new Set());
-  const { scrollRef, onScroll, restoreScrollPosition } = usePersistedScrollPosition(id);
+  const { scrollRef, onScroll, onContentSizeChange } = usePersistedScrollPosition(id);
 
   useEffect(() => {
     if (!id) return;
@@ -50,19 +51,6 @@ export default function ExplorerScreen() {
         if (cancelled) return;
         const rootTree = buildTree(data.nodes);
         setTree(rootTree);
-
-        // Only set default expansion if no persisted state was loaded
-        if (expandedNodes.size === 0) {
-          const expanded = new Set<string>();
-          expanded.add(rootTree.id);
-          for (const child of rootTree.children) {
-            expanded.add(child.id);
-          }
-          setExpandedNodes(expanded);
-        }
-
-        // Restore scroll position after tree renders
-        setTimeout(() => restoreScrollPosition(), 200);
       } catch (e) {
         if (cancelled) return;
         if (e instanceof NotFoundError) {
@@ -78,8 +66,21 @@ export default function ExplorerScreen() {
 
     load();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-fetch on id/retry, not on collapse state changes
   }, [id, retryCount]);
+
+  // Apply default expansion once tree + collapse state are both loaded
+  useEffect(() => {
+    if (!tree || !collapseStateLoaded) return;
+    if (expandedNodes.size === 0) {
+      const expanded = new Set<string>();
+      expanded.add(tree.id);
+      for (const child of tree.children) {
+        expanded.add(child.id);
+      }
+      setExpandedNodes(expanded);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when tree or loaded changes
+  }, [tree, collapseStateLoaded]);
 
   // toggleNode comes from usePersistedCollapseState hook
 
@@ -229,6 +230,7 @@ export default function ExplorerScreen() {
       <ScrollView
         ref={scrollRef}
         onScroll={onScroll}
+        onContentSizeChange={onContentSizeChange}
         scrollEventThrottle={100}
         contentContainerStyle={styles.scrollContent}
       >

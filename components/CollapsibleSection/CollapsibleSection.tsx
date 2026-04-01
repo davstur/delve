@@ -248,7 +248,13 @@ function CollapsibleSectionInner({
                 <Pressable
                   key={i}
                   testID={`source-link-${nodeId}-${i}`}
-                  onPress={() => source.url && Linking.openURL(source.url)}
+                  onPress={() => {
+                    if (source.url) {
+                      Linking.openURL(source.url).catch(() => {
+                        Alert.alert('Cannot open link', 'This link could not be opened.');
+                      });
+                    }
+                  }}
                   accessibilityRole="link"
                   accessibilityLabel={`Open ${source.title}`}
                 >

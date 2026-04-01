@@ -4,20 +4,38 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Persists and restores scroll position for a topic.
+ * Use onContentSizeChange on ScrollView to trigger restore.
  */
 export function usePersistedScrollPosition(topicId: string | undefined) {
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
   const restored = useRef(false);
+  const targetY = useRef<number | null>(null);
 
-  // Save on unmount
+  // Load target Y on mount
   useEffect(() => {
+    restored.current = false;
+    targetY.current = null;
+    if (!topicId) return;
+
+    AsyncStorage.getItem(`scroll-pos:${topicId}`)
+      .then((raw) => {
+        if (raw) {
+          const y = parseInt(raw, 10);
+          if (!isNaN(y) && y > 0) {
+            targetY.current = y;
+          }
+        }
+      })
+      .catch((e) => console.warn(`[scrollPosition] Failed to load for ${topicId}:`, e));
+
+    // Save on unmount
     return () => {
       if (topicId && scrollY.current > 0) {
         AsyncStorage.setItem(
           `scroll-pos:${topicId}`,
           String(Math.round(scrollY.current)),
-        ).catch(() => {});
+        ).catch((e) => console.warn(`[scrollPosition] Failed to save for ${topicId}:`, e));
       }
     };
   }, [topicId]);
@@ -26,24 +44,12 @@ export function usePersistedScrollPosition(topicId: string | undefined) {
     scrollY.current = e.nativeEvent.contentOffset.y;
   }, []);
 
-  const restoreScrollPosition = useCallback(() => {
-    if (!topicId || restored.current) return;
+  // Called by ScrollView's onContentSizeChange — content is laid out
+  const onContentSizeChange = useCallback(() => {
+    if (restored.current || targetY.current === null) return;
     restored.current = true;
+    scrollRef.current?.scrollTo({ y: targetY.current, animated: false });
+  }, []);
 
-    AsyncStorage.getItem(`scroll-pos:${topicId}`)
-      .then((raw) => {
-        if (raw) {
-          const y = parseInt(raw, 10);
-          if (!isNaN(y) && y > 0) {
-            // Small delay to let content render
-            setTimeout(() => {
-              scrollRef.current?.scrollTo({ y, animated: false });
-            }, 100);
-          }
-        }
-      })
-      .catch(() => {});
-  }, [topicId]);
-
-  return { scrollRef, onScroll, restoreScrollPosition };
+  return { scrollRef, onScroll, onContentSizeChange };
 }

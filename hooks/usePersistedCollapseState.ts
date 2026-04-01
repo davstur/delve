@@ -5,7 +5,6 @@ const DEBOUNCE_MS = 500;
 
 /**
  * Manages collapse state for a topic, persisted to AsyncStorage.
- * Returns [expandedNodes, toggleNode, setExpandedNodes].
  */
 export function usePersistedCollapseState(
   topicId: string | undefined,
@@ -14,6 +13,8 @@ export function usePersistedCollapseState(
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(defaultExpanded);
   const [loaded, setLoaded] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandedRef = useRef(expandedNodes);
+  expandedRef.current = expandedNodes;
 
   // Load persisted state
   useEffect(() => {
@@ -28,13 +29,15 @@ export function usePersistedCollapseState(
             if (Array.isArray(ids)) {
               setExpandedNodes(new Set(ids));
             }
-          } catch {
-            // Corrupt data — use defaults
+          } catch (e) {
+            console.warn(`[collapseState] Corrupt data for ${topicId}, clearing:`, e);
+            AsyncStorage.removeItem(key).catch(() => {});
           }
         }
         setLoaded(true);
       })
-      .catch(() => {
+      .catch((e) => {
+        console.warn(`[collapseState] Failed to load for ${topicId}:`, e);
         setLoaded(true);
       });
   }, [topicId]);
@@ -47,12 +50,18 @@ export function usePersistedCollapseState(
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       AsyncStorage.setItem(key, JSON.stringify(Array.from(expandedNodes))).catch(
-        () => {} // Best-effort save
+        (e) => console.warn(`[collapseState] Failed to save for ${topicId}:`, e)
       );
     }, DEBOUNCE_MS);
 
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
+      // Flush current state on unmount
+      if (topicId && loaded) {
+        AsyncStorage.setItem(key, JSON.stringify(Array.from(expandedRef.current))).catch(
+          (e) => console.warn(`[collapseState] Failed to flush on unmount:`, e)
+        );
+      }
     };
   }, [expandedNodes, topicId, loaded]);
 
