@@ -7,8 +7,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Keyboard,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 interface CreateTopicSheetProps {
   isOpen: boolean;
@@ -27,16 +29,13 @@ export function CreateTopicSheet({
   error,
   failCount,
 }: CreateTopicSheetProps) {
-  const bottomSheetRef = useRef<BottomSheet>(null);
   const inputRef = useRef<TextInput>(null);
   const [title, setTitle] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      bottomSheetRef.current?.expand();
       setTimeout(() => inputRef.current?.focus(), 300);
     } else {
-      bottomSheetRef.current?.close();
       setTitle('');
     }
   }, [isOpen]);
@@ -51,100 +50,124 @@ export function CreateTopicSheet({
   const canSubmit = title.trim().length >= 2 && !isLoading;
 
   return (
-    <BottomSheet
-      ref={bottomSheetRef}
-      index={isOpen ? 0 : -1}
-      snapPoints={['40%']}
-      enablePanDownToClose={!isLoading}
-      onClose={onClose}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      backgroundStyle={styles.sheetBackground}
-      handleIndicatorStyle={styles.handleIndicator}
+    <Modal
+      visible={isOpen}
+      animationType="slide"
+      transparent
+      onRequestClose={isLoading ? undefined : onClose}
     >
-      <BottomSheetView style={styles.content}>
-        {isLoading ? (
-          <View testID="create-topic-loading" style={styles.loadingContainer}>
-            <Text style={styles.loadingEmoji}>🔭</Text>
-            <Text style={styles.loadingTitle}>
-              Exploring {title}...
-            </Text>
-            <ActivityIndicator
-              size="small"
-              color="#4F46E5"
-              style={styles.spinner}
-            />
-            <Text
-              style={styles.loadingSubtitle}
-              accessibilityLiveRegion="polite"
-            >
-              Searching the web and building your breakdown
-            </Text>
-          </View>
-        ) : (
-          <View testID="create-topic-form" style={styles.formContainer}>
-            <TextInput
-              ref={inputRef}
-              testID="create-topic-input"
-              style={styles.input}
-              placeholder="What are you curious about?"
-              placeholderTextColor="#8888A0"
-              value={title}
-              onChangeText={setTitle}
-              maxLength={200}
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-              autoCapitalize="sentences"
-              autoCorrect
-              accessibilityLabel="Topic name"
-              accessibilityHint="Enter a subject to explore"
-            />
-
-            {error && (
-              <View testID="create-topic-error" style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-                {failCount >= 3 && (
-                  <Text style={styles.errorHint}>
-                    Try a different topic or check your connection.
+      <Pressable
+        style={styles.backdrop}
+        onPress={isLoading ? undefined : onClose}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardAvoid}
+        >
+          <Pressable style={styles.sheet} onPress={() => {}}>
+            <View style={styles.handleBar} />
+            <View style={styles.content}>
+              {isLoading ? (
+                <View testID="create-topic-loading" style={styles.loadingContainer}>
+                  <Text style={styles.loadingEmoji}>🔭</Text>
+                  <Text style={styles.loadingTitle}>
+                    Exploring {title}...
                   </Text>
-                )}
-              </View>
-            )}
+                  <ActivityIndicator
+                    size="small"
+                    color="#4F46E5"
+                    style={styles.spinner}
+                  />
+                  <Text
+                    style={styles.loadingSubtitle}
+                    accessibilityLiveRegion="polite"
+                  >
+                    Searching the web and building your breakdown
+                  </Text>
+                </View>
+              ) : (
+                <View testID="create-topic-form" style={styles.formContainer}>
+                  <TextInput
+                    ref={inputRef}
+                    testID="create-topic-input"
+                    style={styles.input}
+                    placeholder="What are you curious about?"
+                    placeholderTextColor="#8888A0"
+                    value={title}
+                    onChangeText={setTitle}
+                    maxLength={200}
+                    returnKeyType="go"
+                    onSubmitEditing={handleSubmit}
+                    autoCapitalize="sentences"
+                    autoCorrect
+                    accessibilityLabel="Topic name"
+                    accessibilityHint="Enter a subject to explore"
+                  />
 
-            <Pressable
-              testID="create-topic-submit"
-              style={[styles.submitButton, !canSubmit && styles.submitDisabled]}
-              onPress={handleSubmit}
-              disabled={!canSubmit}
-              accessibilityRole="button"
-              accessibilityLabel="Explore topic"
-              accessibilityHint="Generates an AI breakdown of your topic"
-            >
-              <Text
-                style={[
-                  styles.submitText,
-                  !canSubmit && styles.submitTextDisabled,
-                ]}
-              >
-                Explore
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      </BottomSheetView>
-    </BottomSheet>
+                  {error && (
+                    <View testID="create-topic-error" style={styles.errorContainer}>
+                      <Text style={styles.errorText}>{error}</Text>
+                      {failCount >= 3 && (
+                        <Text style={styles.errorHint}>
+                          Try a different topic or check your connection.
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  <Pressable
+                    testID="create-topic-submit"
+                    style={[styles.submitButton, !canSubmit && styles.submitDisabled]}
+                    onPress={handleSubmit}
+                    disabled={!canSubmit}
+                    accessibilityRole="button"
+                    accessibilityLabel="Explore topic"
+                    accessibilityHint="Generates an AI breakdown of your topic"
+                  >
+                    <Text
+                      style={[
+                        styles.submitText,
+                        !canSubmit && styles.submitTextDisabled,
+                      ]}
+                    >
+                      Explore
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  sheetBackground: {
-    backgroundColor: '#1A1A24',
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
-  handleIndicator: {
+  keyboardAvoid: {
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#1A1A24',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+  },
+  handleBar: {
+    width: 36,
+    height: 4,
     backgroundColor: '#8888A0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 8,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 24,
   },
   formContainer: {
@@ -193,6 +216,7 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: 'center',
     paddingTop: 24,
+    paddingBottom: 16,
   },
   loadingEmoji: {
     fontSize: 48,
