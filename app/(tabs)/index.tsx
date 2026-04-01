@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TopicCard } from '../../components/TopicCard/TopicCard';
 import { CreateTopicSheet } from '../../components/CreateTopicSheet';
 import { fetchTopics, createTopic } from '../../api/client';
@@ -91,19 +90,19 @@ export default function HomeScreen() {
   // Loading state — initial fetch
   if (isLoading) {
     return (
-      <GestureHandlerRootView style={styles.flex}>
+      <>
         <View testID="home-screen" style={[styles.container, styles.centered]}>
           <StatusBar style="light" />
           <ActivityIndicator size="large" color="#4F46E5" />
         </View>
-      </GestureHandlerRootView>
+      </>
     );
   }
 
   // Empty state — no topics (or load error with no cached topics)
   if (topics.length === 0) {
     return (
-      <GestureHandlerRootView style={styles.flex}>
+      <>
         <View testID="home-screen" style={styles.container}>
           <StatusBar style="light" />
           <View style={styles.emptyState} testID="empty-state">
@@ -145,12 +144,12 @@ export default function HomeScreen() {
             failCount={createFailCount.current}
           />
         </View>
-      </GestureHandlerRootView>
+      </>
     );
   }
 
   return (
-    <GestureHandlerRootView style={styles.flex}>
+    <>
       <View testID="home-screen" style={styles.container}>
         <StatusBar style="light" />
         {loadError && (
@@ -196,14 +195,11 @@ export default function HomeScreen() {
           failCount={createFailCount.current}
         />
       </View>
-    </GestureHandlerRootView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
   container: {
     flex: 1,
     backgroundColor: '#0F0F14',

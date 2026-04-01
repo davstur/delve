@@ -23,8 +23,8 @@ import type { VersionEntry } from '../../api/client';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
 import { VersionHistory } from '../../components/VersionHistory';
 import { buildTree } from '../../utils/buildTree';
-import { usePersistedCollapseState } from '../../hooks/usePersistedCollapseState';
-import { usePersistedScrollPosition } from '../../hooks/usePersistedScrollPosition';
+import { usePersistedCollapseState } from '../../utils/usePersistedCollapseState';
+import { usePersistedScrollPosition } from '../../utils/usePersistedScrollPosition';
 import type { TreeNode } from '../../types';
 
 export default function ExplorerScreen() {
