@@ -17,6 +17,8 @@ import {
 } from '../../api/client';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
 import { buildTree } from '../../utils/buildTree';
+import { usePersistedCollapseState } from '../../hooks/usePersistedCollapseState';
+import { usePersistedScrollPosition } from '../../hooks/usePersistedScrollPosition';
 import type { TreeNode } from '../../types';
 
 export default function ExplorerScreen() {
@@ -25,8 +27,15 @@ export default function ExplorerScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [is404, setIs404] = useState(false);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [retryCount, setRetryCount] = useState(0);
+
+  const {
+    expandedNodes,
+    toggleNode,
+    setExpandedNodes,
+    loaded: collapseStateLoaded,
+  } = usePersistedCollapseState(id, new Set());
+  const { scrollRef, onScroll, onContentSizeChange } = usePersistedScrollPosition(id);
 
   useEffect(() => {
     if (!id) return;
@@ -42,14 +51,6 @@ export default function ExplorerScreen() {
         if (cancelled) return;
         const rootTree = buildTree(data.nodes);
         setTree(rootTree);
-
-        // Default expansion: H1 + H2 expanded, H3/H4 collapsed
-        const expanded = new Set<string>();
-        expanded.add(rootTree.id);
-        for (const child of rootTree.children) {
-          expanded.add(child.id);
-        }
-        setExpandedNodes(expanded);
       } catch (e) {
         if (cancelled) return;
         if (e instanceof NotFoundError) {
@@ -67,17 +68,21 @@ export default function ExplorerScreen() {
     return () => { cancelled = true; };
   }, [id, retryCount]);
 
-  const toggleNode = useCallback((nodeId: string) => {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) {
-        next.delete(nodeId);
-      } else {
-        next.add(nodeId);
+  // Apply default expansion once tree + collapse state are both loaded
+  useEffect(() => {
+    if (!tree || !collapseStateLoaded) return;
+    if (expandedNodes.size === 0) {
+      const expanded = new Set<string>();
+      expanded.add(tree.id);
+      for (const child of tree.children) {
+        expanded.add(child.id);
       }
-      return next;
-    });
-  }, []);
+      setExpandedNodes(expanded);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run when tree or loaded changes
+  }, [tree, collapseStateLoaded]);
+
+  // toggleNode comes from usePersistedCollapseState hook
 
   const handleExpand = useCallback(async (nodeId: string, prompt?: string) => {
     if (!id) return;
@@ -129,6 +134,7 @@ export default function ExplorerScreen() {
       next.add(nodeId);
       return next;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Loading
@@ -221,7 +227,13 @@ export default function ExplorerScreen() {
 
   return (
     <View testID="explorer-screen" style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        ref={scrollRef}
+        onScroll={onScroll}
+        onContentSizeChange={onContentSizeChange}
+        scrollEventThrottle={100}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* H1 Root — always expanded */}
         <CollapsibleSection
           nodeId={tree.id}

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -244,9 +245,23 @@ function CollapsibleSectionInner({
           {parsedSources.length > 0 && (
             <View testID={`section-sources-${nodeId}`} style={styles.sourceRow}>
               {parsedSources.map((source, i) => (
-                <Text key={i} style={styles.sourceText} numberOfLines={1}>
-                  🔗 {source.title}
-                </Text>
+                <Pressable
+                  key={i}
+                  testID={`source-link-${nodeId}-${i}`}
+                  onPress={() => {
+                    if (source.url) {
+                      Linking.openURL(source.url).catch(() => {
+                        Alert.alert('Cannot open link', 'This link could not be opened.');
+                      });
+                    }
+                  }}
+                  accessibilityRole="link"
+                  accessibilityLabel={`Open ${source.title}`}
+                >
+                  <Text style={styles.sourceText} numberOfLines={1}>
+                    🔗 {source.title}
+                  </Text>
+                </Pressable>
               ))}
             </View>
           )}
