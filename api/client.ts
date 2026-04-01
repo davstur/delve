@@ -7,9 +7,11 @@ export class NotFoundError extends Error {
   }
 }
 
-const BASE_URL = __DEV__
-  ? 'http://localhost:8080'
-  : 'https://delve-api-912297138941.europe-west1.run.app';
+// In dev: use local server on simulator, production URL on physical device.
+// Set EXPO_PUBLIC_API_URL env var to override (e.g., for local LAN testing).
+const PRODUCTION_URL = 'https://delve-api-912297138941.europe-west1.run.app';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL
+  || (__DEV__ ? 'http://localhost:8080' : PRODUCTION_URL);
 
 const TIMEOUT_MS = 120_000;
 
