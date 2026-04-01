@@ -112,6 +112,46 @@ export async function createSubtopics(
   return data.nodes;
 }
 
+export interface VersionEntry {
+  id: string;
+  action: string;
+  created_at: string;
+  target_label: string | null;
+}
+
+export async function fetchVersions(topicId: string): Promise<VersionEntry[]> {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/topics/${topicId}/versions`);
+  if (!response.ok) throw new Error('Failed to fetch versions');
+  const data = await response.json();
+  return data.versions;
+}
+
+export async function fetchVersionSnapshot(
+  topicId: string,
+  versionId: string,
+): Promise<{ version: VersionEntry; nodes: TopicNode[] }> {
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/api/topics/${topicId}/versions/${versionId}`,
+  );
+  if (!response.ok) throw new Error('Failed to fetch version');
+  return response.json();
+}
+
+export async function restoreVersion(
+  topicId: string,
+  versionId: string,
+): Promise<TopicWithNodes> {
+  const response = await fetchWithTimeout(
+    `${BASE_URL}/api/topics/${topicId}/versions/${versionId}/restore`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || 'Failed to restore version');
+  }
+  return response.json();
+}
+
 export async function fetchTopicWithNodes(topicId: string): Promise<TopicWithNodes> {
   const response = await fetchWithTimeout(`${BASE_URL}/api/topics/${topicId}`);
   if (!response.ok) {

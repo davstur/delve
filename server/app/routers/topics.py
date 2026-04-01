@@ -459,6 +459,167 @@ def create_node_subtopics(
     return {"nodes": insert_result.data}
 
 
+@router.get("/{topic_id}/versions")
+def list_versions(topic_id: UUID):
+    """List version history for a topic."""
+    supabase = get_supabase()
+    topic_id_str = str(topic_id)
+
+    # Verify topic exists
+    topic_result = supabase.table("topics").select("id").eq(
+        "id", topic_id_str
+    ).maybe_single().execute()
+    if not topic_result or not topic_result.data:
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    versions_result = supabase.table("versions").select(
+        "id,action,created_at,snapshot"
+    ).eq("topic_id", topic_id_str).order("created_at", desc=True).execute()
+
+    # Extract a label from each snapshot for display
+    versions = []
+    for v in versions_result.data:
+        snapshot = v.get("snapshot")
+        target_label = None
+        if isinstance(snapshot, list) and len(snapshot) > 0:
+            # Find the most recently modified node or the root
+            target_label = snapshot[0].get("label", "")
+        elif isinstance(snapshot, str):
+            try:
+                parsed = json.loads(snapshot)
+                if isinstance(parsed, list) and len(parsed) > 0:
+                    target_label = parsed[0].get("label", "")
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        versions.append({
+            "id": v["id"],
+            "action": v["action"],
+            "created_at": v["created_at"],
+            "target_label": target_label,
+        })
+
+    return {"versions": versions}
+
+
+@router.get("/{topic_id}/versions/{version_id}")
+def get_version_snapshot(topic_id: UUID, version_id: UUID):
+    """Get a version's full node snapshot."""
+    supabase = get_supabase()
+
+    version_result = supabase.table("versions").select("*").eq(
+        "id", str(version_id)
+    ).eq("topic_id", str(topic_id)).maybe_single().execute()
+
+    if not version_result or not version_result.data:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    snapshot = version_result.data["snapshot"]
+    if isinstance(snapshot, str):
+        try:
+            snapshot = json.loads(snapshot)
+        except (json.JSONDecodeError, TypeError):
+            snapshot = []
+
+    return {
+        "version": {
+            "id": version_result.data["id"],
+            "action": version_result.data["action"],
+            "created_at": version_result.data["created_at"],
+        },
+        "nodes": snapshot,
+    }
+
+
+@router.post("/{topic_id}/versions/{version_id}/restore")
+def restore_version(topic_id: UUID, version_id: UUID):
+    """Restore a topic to a previous version."""
+    from datetime import datetime, timezone
+
+    supabase = get_supabase()
+    topic_id_str = str(topic_id)
+    version_id_str = str(version_id)
+
+    # Fetch the target version
+    version_result = supabase.table("versions").select("*").eq(
+        "id", version_id_str
+    ).eq("topic_id", topic_id_str).maybe_single().execute()
+
+    if not version_result or not version_result.data:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    snapshot = version_result.data["snapshot"]
+    if isinstance(snapshot, str):
+        try:
+            snapshot = json.loads(snapshot)
+        except (json.JSONDecodeError, TypeError):
+            raise HTTPException(status_code=500, detail="Version snapshot is corrupt")
+
+    if not isinstance(snapshot, list) or len(snapshot) == 0:
+        raise HTTPException(status_code=400, detail="Version snapshot is empty")
+
+    # Step 1: Snapshot current state before restoring
+    current_nodes = supabase.table("nodes").select("*").eq(
+        "topic_id", topic_id_str
+    ).execute()
+
+    restore_version_result = supabase.table("versions").insert({
+        "topic_id": topic_id_str,
+        "snapshot": json.dumps(current_nodes.data),
+        "action": "restore",
+    }).execute()
+    new_version_id = restore_version_result.data[0]["id"]
+
+    # Step 2: Delete all current nodes (children first due to RESTRICT FK)
+    # Delete in reverse depth order to respect parent_id RESTRICT
+    for depth in [4, 3, 2, 1]:
+        supabase.table("nodes").delete().eq(
+            "topic_id", topic_id_str
+        ).eq("depth", depth).execute()
+
+    # Step 3: Insert nodes from snapshot — need ID remapping for parent_id FKs
+    # Sort by depth so parents are inserted before children
+    snapshot.sort(key=lambda n: n.get("depth", 1))
+    old_to_new_id: dict[str, str] = {}
+
+    try:
+        for node in snapshot:
+            old_id = node.get("id")
+            old_parent = node.get("parent_id")
+            new_parent = old_to_new_id.get(old_parent) if old_parent else None
+
+            sources = node.get("sources", [])
+            if isinstance(sources, list):
+                sources = json.dumps(sources)
+            elif not isinstance(sources, str):
+                sources = "[]"
+
+            insert_data = {
+                "topic_id": topic_id_str,
+                "parent_id": new_parent,
+                "version_id": new_version_id,
+                "label": node.get("label", ""),
+                "emoji": node.get("emoji", "📄"),
+                "color": node.get("color", "#4F46E5"),
+                "summary": node.get("summary", ""),
+                "content": node.get("content"),
+                "depth": node.get("depth", 1),
+                "sort_order": node.get("sort_order", 0),
+                "sources": sources,
+            }
+
+            result = supabase.table("nodes").insert(insert_data).execute()
+            new_id = result.data[0]["id"]
+            if old_id:
+                old_to_new_id[old_id] = new_id
+    except Exception as e:
+        logger.error("Failed to restore nodes: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to restore version")
+
+    # Return restored topic
+    return get_topic_with_nodes(topic_id_str)
+
+
 def _cleanup_partial_insert(
     supabase,
     child_node_ids: list[str],

@@ -6,16 +6,22 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   createSubtopics,
   expandNode,
   fetchTopicWithNodes,
+  fetchVersions,
+  fetchVersionSnapshot,
   NotFoundError,
+  restoreVersion,
   suggestSubtopics,
 } from '../../api/client';
+import type { VersionEntry } from '../../api/client';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
+import { VersionHistory } from '../../components/VersionHistory';
 import { buildTree } from '../../utils/buildTree';
 import { usePersistedCollapseState } from '../../hooks/usePersistedCollapseState';
 import { usePersistedScrollPosition } from '../../hooks/usePersistedScrollPosition';
@@ -28,6 +34,14 @@ export default function ExplorerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [is404, setIs404] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+
+  // Version history state
+  const [showHistory, setShowHistory] = useState(false);
+  const [versions, setVersions] = useState<VersionEntry[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionsError, setVersionsError] = useState<string | null>(null);
+  const [snapshotTree, setSnapshotTree] = useState<TreeNode | null>(null);
+  const [viewingVersion, setViewingVersion] = useState<string | null>(null);
 
   const {
     expandedNodes,
@@ -137,6 +151,51 @@ export default function ExplorerScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const openHistory = useCallback(async () => {
+    if (!id) return;
+    setShowHistory(true);
+    setVersionsLoading(true);
+    setVersionsError(null);
+    setSnapshotTree(null);
+    setViewingVersion(null);
+    try {
+      const data = await fetchVersions(id);
+      setVersions(data);
+    } catch (e: any) {
+      setVersionsError(e?.message || 'Failed to load version history');
+    } finally {
+      setVersionsLoading(false);
+    }
+  }, [id]);
+
+  const viewSnapshot = useCallback(async (versionId: string) => {
+    if (!id) return;
+    try {
+      const data = await fetchVersionSnapshot(id, versionId);
+      if (data.nodes.length > 0) {
+        const snapTree = buildTree(data.nodes);
+        setSnapshotTree(snapTree);
+        setViewingVersion(versionId);
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to load version');
+    }
+  }, [id]);
+
+  const handleRestore = useCallback(async (versionId: string) => {
+    if (!id) return;
+    try {
+      await restoreVersion(id, versionId);
+      setShowHistory(false);
+      setSnapshotTree(null);
+      setViewingVersion(null);
+      // Refetch the topic to get restored content
+      setRetryCount((c) => c + 1);
+    } catch (e: any) {
+      Alert.alert('Restore failed', e?.message || 'Could not restore version');
+    }
+  }, [id]);
+
   // Loading
   if (isLoading) {
     return (
@@ -225,8 +284,64 @@ export default function ExplorerScreen() {
     );
   }
 
+  // Version history overlay
+  if (showHistory && !viewingVersion) {
+    return (
+      <View testID="explorer-screen" style={styles.container}>
+        <VersionHistory
+          versions={versions}
+          isLoading={versionsLoading}
+          error={versionsError}
+          onSelectVersion={viewSnapshot}
+          onRestore={handleRestore}
+          onClose={() => setShowHistory(false)}
+        />
+      </View>
+    );
+  }
+
+  // Snapshot viewer (read-only)
+  if (viewingVersion && snapshotTree) {
+    return (
+      <View testID="explorer-screen" style={styles.container}>
+        <View style={styles.snapshotHeader}>
+          <Pressable
+            testID="snapshot-back"
+            onPress={() => { setViewingVersion(null); setSnapshotTree(null); }}
+            accessibilityRole="button"
+          >
+            <Text style={styles.snapshotBackText}>← Back to history</Text>
+          </Pressable>
+          <Pressable
+            testID="snapshot-restore"
+            style={styles.snapshotRestoreButton}
+            onPress={() => handleRestore(viewingVersion)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.snapshotRestoreText}>Restore</Text>
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {renderNode(snapshotTree, new Set([snapshotTree.id, ...snapshotTree.children.map(c => c.id)]), () => {}, async () => {}, async () => {}, async () => [])}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View testID="explorer-screen" style={styles.container}>
+      {/* History button */}
+      <View style={styles.historyBar}>
+        <Pressable
+          testID="history-button"
+          style={styles.historyButton}
+          onPress={openHistory}
+          accessibilityRole="button"
+          accessibilityLabel="View version history"
+        >
+          <Text style={styles.historyButtonText}>🕒 History</Text>
+        </Pressable>
+      </View>
       <ScrollView
         ref={scrollRef}
         onScroll={onScroll}
@@ -369,6 +484,47 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 40,
     paddingHorizontal: 8,
+  },
+  historyBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  historyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#2A2A36',
+  },
+  historyButtonText: {
+    color: '#8888A0',
+    fontSize: 13,
+  },
+  snapshotHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A36',
+  },
+  snapshotBackText: {
+    color: '#4F46E5',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  snapshotRestoreButton: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  snapshotRestoreText: {
+    color: '#F0F0F5',
+    fontSize: 14,
+    fontWeight: '600',
   },
   divider: {
     height: 1,
