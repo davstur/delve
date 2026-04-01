@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Animated,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { DepthIndicator } from './DepthIndicator';
 import type { Source } from '../../types';
 
@@ -61,7 +57,7 @@ function CollapsibleSectionInner({
 }: CollapsibleSectionProps) {
   const isRoot = depth === 1;
   const isMaxDepth = depth === 4;
-  const chevronRotation = useSharedValue(isExpanded ? 1 : 0);
+  const chevronAnim = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
   const [expandPanelOpen, setExpandPanelOpen] = useState(false);
   const [expandPrompt, setExpandPrompt] = useState('');
   const [isExpanding, setIsExpanding] = useState(false);
@@ -76,13 +72,22 @@ function CollapsibleSectionInner({
   const [isCreatingSubtopics, setIsCreatingSubtopics] = useState(false);
   const [subtopicError, setSubtopicError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    chevronRotation.value = withTiming(isExpanded ? 1 : 0, { duration: 200 });
-  }, [isExpanded, chevronRotation]);
+  useEffect(() => {
+    Animated.timing(chevronAnim, {
+      toValue: isExpanded ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [isExpanded, chevronAnim]);
 
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${chevronRotation.value * 90}deg` }],
-  }));
+  const chevronStyle = {
+    transform: [{
+      rotate: chevronAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '90deg'],
+      }),
+    }],
+  };
 
   const handlePress = useCallback(() => {
     if (!isRoot) {
