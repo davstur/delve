@@ -14,8 +14,10 @@ import { TopicCard } from '../../components/TopicCard/TopicCard';
 import { CreateTopicSheet } from '../../components/CreateTopicSheet';
 import { fetchTopics, createTopic } from '../../api/client';
 import { TopicWithStats } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function HomeScreen() {
+  const { signOut, user } = useAuth();
   const [topics, setTopics] = useState<TopicWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -157,6 +159,18 @@ export default function HomeScreen() {
             <Text style={styles.errorBannerText}>{loadError}</Text>
           </View>
         )}
+        {/* Sign out */}
+        <View style={styles.headerBar}>
+          <Text style={styles.headerEmail} numberOfLines={1}>{user?.email}</Text>
+          <Pressable
+            testID="sign-out-button"
+            onPress={signOut}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            <Text style={styles.signOutText}>Sign out</Text>
+          </Pressable>
+        </View>
         <FlatList
           testID="topic-list"
           data={topics}
@@ -200,6 +214,23 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  headerEmail: {
+    color: '#8888A0',
+    fontSize: 13,
+    flex: 1,
+    marginRight: 12,
+  },
+  signOutText: {
+    color: '#8888A0',
+    fontSize: 13,
+  },
   container: {
     flex: 1,
     backgroundColor: '#0F0F14',

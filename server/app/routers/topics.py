@@ -2,7 +2,11 @@ import json
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.auth import get_current_user_id, require_auth
 
 from app.models.schemas import (
     CreateSubtopicsAIResponse,
@@ -27,8 +31,8 @@ router = APIRouter(prefix="/api/topics", tags=["topics"])
 
 
 @router.get("")
-def get_topics():
-    return list_topics()
+def get_topics(user_id: Optional[str] = Depends(get_current_user_id)):
+    return list_topics(user_id=user_id)
 
 
 @router.get("/{topic_id}")
@@ -40,7 +44,7 @@ def get_topic(topic_id: UUID):
 
 
 @router.post("", status_code=201)
-def create_topic(request: CreateTopicRequest):
+def create_topic(request: CreateTopicRequest, user_id: Optional[str] = Depends(get_current_user_id)):
     """Create a new topic using Claude AI with web search."""
     # Step 0: Call Claude AI
     try:
@@ -66,10 +70,13 @@ def create_topic(request: CreateTopicRequest):
 
     try:
         # Step 1: Insert topic
-        topic_result = supabase.table("topics").insert({
+        topic_data = {
             "title": ai_response.label,
             "emoji": ai_response.emoji,
-        }).execute()
+        }
+        if user_id:
+            topic_data["user_id"] = user_id
+        topic_result = supabase.table("topics").insert(topic_data).execute()
         topic_id = topic_result.data[0]["id"]
 
         # Step 2: Insert sentinel version

@@ -1,4 +1,5 @@
 import { TopicWithStats, TopicNode } from '../types';
+import { supabase } from '../utils/supabase';
 
 export class NotFoundError extends Error {
   constructor(message = 'Not found') {
@@ -20,15 +21,33 @@ interface TopicWithNodes {
   nodes: TopicNode[];
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return { Authorization: `Bearer ${session.access_token}` };
+  }
+  return {};
+}
+
 async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const authHeaders = await getAuthHeaders();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const headers = { ...authHeaders, ...(options.headers || {}) };
+    const response = await fetch(url, { ...options, headers, signal: controller.signal });
     return response;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function claimTopics(): Promise<{ claimed: number }> {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/auth/claim-topics`, {
+    method: 'POST',
+  });
+  if (!response.ok) return { claimed: 0 };
+  return response.json();
 }
 
 export async function fetchTopics(): Promise<TopicWithStats[]> {
