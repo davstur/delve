@@ -1,11 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
+import { Alert, AppState, Linking } from 'react-native';
 import { supabase } from '../utils/supabase';
 import { claimTopics } from '../api/client';
-import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri } from 'expo-auth-session';
-
-WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   user: User | null;
@@ -29,21 +26,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
 
-        // On sign-in, claim any unclaimed topics (migration from pre-auth)
         if (_event === 'SIGNED_IN' && session) {
           try {
             const result = await claimTopics();
@@ -51,46 +45,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.log(`Claimed ${result.claimed} existing topics`);
             }
           } catch {
-            // Non-critical — topics may already be claimed
+            // Non-critical
           }
         }
       },
     );
 
-    return () => subscription.unsubscribe();
+    // Handle deep link redirects (OAuth callback)
+    const handleDeepLink = async (event: { url: string }) => {
+      const url = event.url;
+      if (url.includes('access_token')) {
+        // Extract tokens from fragment
+        const fragment = url.split('#')[1];
+        if (fragment) {
+          const params = new URLSearchParams(fragment);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+          }
+        }
+      }
+    };
+
+    // Listen for deep links
+    const linkSubscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if app was opened via deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink({ url });
+    });
+
+    const appStateSubscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        supabase.auth.startAutoRefresh();
+      } else {
+        supabase.auth.stopAutoRefresh();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      linkSubscription.remove();
+      appStateSubscription.remove();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
-    const redirectTo = makeRedirectUri();
-
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
-        skipBrowserRedirect: true,
+        redirectTo: 'delve://auth/callback',
       },
     });
 
     if (error) throw error;
+
     if (data?.url) {
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        redirectTo,
-      );
-
-      if (result.type === 'success') {
-        const url = new URL(result.url);
-        // Extract tokens from the URL fragment
-        const params = new URLSearchParams(url.hash.substring(1));
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (accessToken && refreshToken) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-        }
+      const supported = await Linking.canOpenURL(data.url);
+      if (supported) {
+        await Linking.openURL(data.url);
+      } else {
+        Alert.alert('Error', 'Cannot open browser for sign-in');
       }
     }
   };
