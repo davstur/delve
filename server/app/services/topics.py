@@ -1,18 +1,20 @@
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 
 from app.services.database import get_supabase
 
 logger = logging.getLogger(__name__)
 
 
-def list_topics() -> list[dict]:
-    """Fetch all topics with node counts, sorted by last visited."""
+def list_topics(user_id: Optional[str] = None) -> list[dict]:
+    """Fetch topics with node counts, sorted by last visited. Filters by user_id if provided."""
     supabase = get_supabase()
 
-    result = supabase.table("topics").select("*").order(
-        "last_visited_at", desc=True
-    ).execute()
+    query = supabase.table("topics").select("*")
+    if user_id:
+        query = query.eq("user_id", user_id)
+    result = query.order("last_visited_at", desc=True).execute()
     topics = result.data
 
     if not topics:
